@@ -75,8 +75,55 @@ jobs:
             Copy-Item $item.Source $target -Force
           }
 
-      - name: Upload artifacts
+      - name: Pack all build products
+        shell: powershell
+        run: |
+          $sourceRoot = (Resolve-Path "CPP\7zip").Path
+          $fullPackageRoot = Join-Path $PWD "package-all"
+          $zipPath = Join-Path $PWD "7zip-windows-all-products.zip"
+
+          if (Test-Path $fullPackageRoot) {
+            Remove-Item $fullPackageRoot -Recurse -Force
+          }
+          if (Test-Path $zipPath) {
+            Remove-Item $zipPath -Force
+          }
+
+          New-Item -ItemType Directory -Force -Path $fullPackageRoot | Out-Null
+
+          $productFiles = Get-ChildItem -Path $sourceRoot -Recurse -File | Where-Object {
+            $_.DirectoryName -match '[\\/](x64|x86)$' -and
+            @('.exe', '.dll', '.sfx') -contains $_.Extension.ToLowerInvariant()
+          } | Sort-Object FullName -Unique
+
+          if (-not $productFiles) {
+            throw "No built products were found under $sourceRoot"
+          }
+
+          $sourcePrefix = $sourceRoot.TrimEnd('\') + '\'
+
+          foreach ($file in $productFiles) {
+            $relativePath = $file.FullName.Substring($sourcePrefix.Length)
+            $target = Join-Path $fullPackageRoot $relativePath
+            New-Item -ItemType Directory -Force -Path (Split-Path $target) | Out-Null
+            Copy-Item $file.FullName $target -Force
+          }
+
+          $langTargetRoot = Join-Path $fullPackageRoot "Lang"
+          New-Item -ItemType Directory -Force -Path $langTargetRoot | Out-Null
+          Copy-Item "Lang\*.txt" $langTargetRoot -Force
+          Copy-Item "Lang\en.ttt" (Join-Path $langTargetRoot "en.ttt") -Force
+
+          Compress-Archive -Path (Join-Path $fullPackageRoot '*') -DestinationPath $zipPath -CompressionLevel Optimal
+
+      - name: Upload replacement artifact
         uses: actions/upload-artifact@v4
         with:
           name: 7zip-windows-replacement
           path: package
+
+      - name: Upload full product archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: 7zip-windows-all-products
+          path: 7zip-windows-all-products.zip
