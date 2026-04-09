@@ -11,14 +11,6 @@ on:
 jobs:
   build:
     runs-on: windows-2022
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: x64
-            vcvars: vcvars64.bat
-          - platform: x86
-            vcvars: vcvarsamd64_x86.bat
 
     steps:
       - name: Checkout
@@ -37,46 +29,54 @@ jobs:
           }
           "VS_INSTALL=$installPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Build ${{ matrix.platform }}
+      - name: Build x64
         shell: cmd
         run: |
-          call "%VS_INSTALL%\VC\Auxiliary\Build\${{ matrix.vcvars }}"
+          call "%VS_INSTALL%\VC\Auxiliary\Build\vcvars64.bat"
           cd /d CPP\7zip
-          set PLATFORM=${{ matrix.platform }}
+          set PLATFORM=x64
           nmake PLATFORM=%PLATFORM%
 
-      - name: Collect binaries
+      - name: Build x86
+        shell: cmd
+        run: |
+          call "%VS_INSTALL%\VC\Auxiliary\Build\vcvarsamd64_x86.bat"
+          cd /d CPP\7zip
+          set PLATFORM=x86
+          nmake PLATFORM=%PLATFORM%
+
+      - name: Pack replacement files
         shell: powershell
         run: |
-          $root = (Resolve-Path "CPP\7zip").Path
-          $dest = Join-Path $PWD "artifacts"
-          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+          $packageRoot = Join-Path $PWD "package"
+          $langRoot = Join-Path $packageRoot "Lang"
+          New-Item -ItemType Directory -Force -Path $langRoot | Out-Null
 
-          $exts = @(".exe", ".dll", ".sfx")
-          $dirRegex = "\\\\(?:${{ matrix.platform }}|o)\\\\"
-          $files = Get-ChildItem -Recurse -File $root | Where-Object {
-            $exts -contains $_.Extension.ToLowerInvariant() -and $_.FullName -match $dirRegex
-          }
+          $copyMap = @(
+            @{ Source = "CPP\7zip\Bundles\Fm\x64\7zFM.exe"; Destination = "7zFM.exe" },
+            @{ Source = "CPP\7zip\UI\GUI\x64\7zG.exe"; Destination = "7zG.exe" },
+            @{ Source = "CPP\7zip\UI\Console\x64\7z.exe"; Destination = "7z.exe" },
+            @{ Source = "CPP\7zip\Bundles\Format7zF\x64\7z.dll"; Destination = "7z.dll" },
+            @{ Source = "CPP\7zip\UI\Explorer\x64\7-zip.dll"; Destination = "7-zip.dll" },
+            @{ Source = "CPP\7zip\UI\Explorer\x86\7-zip.dll"; Destination = "7-zip32.dll" },
+            @{ Source = "CPP\7zip\Bundles\SFXWin\x64\7z.sfx"; Destination = "7z.sfx" },
+            @{ Source = "CPP\7zip\Bundles\SFXCon\x64\7zCon.sfx"; Destination = "7zCon.sfx" },
+            @{ Source = "Lang\en.ttt"; Destination = "Lang\en.ttt" },
+            @{ Source = "Lang\zh-cn.txt"; Destination = "Lang\zh-cn.txt" }
+          )
 
-          if (-not $files) {
-            $files = Get-ChildItem -Recurse -File $root | Where-Object {
-              $exts -contains $_.Extension.ToLowerInvariant()
+          foreach ($item in $copyMap) {
+            if (-not (Test-Path $item.Source)) {
+              throw "Missing expected file: $($item.Source)"
             }
-          }
 
-          if (-not $files) {
-            throw "No build artifacts were found for ${{ matrix.platform }}."
-          }
-
-          foreach ($file in $files) {
-            $relative = $file.FullName.Substring($root.Length + 1)
-            $target = Join-Path $dest $relative
+            $target = Join-Path $packageRoot $item.Destination
             New-Item -ItemType Directory -Force -Path (Split-Path $target) | Out-Null
-            Copy-Item $file.FullName $target -Force
+            Copy-Item $item.Source $target -Force
           }
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: 7zip-windows-${{ matrix.platform }}
-          path: artifacts
+          name: 7zip-windows-replacement
+          path: package

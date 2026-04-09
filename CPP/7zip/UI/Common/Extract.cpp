@@ -86,6 +86,7 @@ static HRESULT DecompressArchive(
   FString outDirReduced = outDir;
   bool smartExtract_CreateSubDir = false;
   bool smartExtract_TopLevelDefined = false;
+  bool smartExtract_HasUnknownTopLevel = false;
   UString smartExtract_TopLevelName;
   
   if (options.ElimDup.Val && !options.SmartExtractMode
@@ -117,6 +118,7 @@ static HRESULT DecompressArchive(
     for (UInt32 i = 0; i < numItems; i++)
     {
       if (elimIsPossible
+          || options.SmartExtractMode
           || !allFilesAreAllowed
           || options.ExcludeDirItems
           || options.ExcludeFileItems)
@@ -179,7 +181,9 @@ static HRESULT DecompressArchive(
             item.Path;
           #endif
         const UString topLevelName = GetTopLevelExtractPathPart(path);
-        if (!topLevelName.IsEmpty())
+        if (topLevelName.IsEmpty())
+          smartExtract_HasUnknownTopLevel = true;
+        else
         {
           if (!smartExtract_TopLevelDefined)
           {
@@ -207,6 +211,9 @@ static HRESULT DecompressArchive(
       outDir = "." STRING_PATH_SEPARATOR;
     else
       NName::NormalizeDirPathPrefix(outDir);
+
+    if (smartExtract_HasUnknownTopLevel && realIndices.Size() > 1)
+      smartExtract_CreateSubDir = true;
 
     if (smartExtract_CreateSubDir)
     {
