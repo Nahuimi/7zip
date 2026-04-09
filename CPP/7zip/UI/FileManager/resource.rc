@@ -146,6 +146,7 @@ BEGIN
     POPUP "Name &Encoding"                  MY_MENUITEM_ID(IDM_NAME_ENCODING)
     BEGIN
       MENUITEM "&Default",                                        IDM_NAME_ENCODING_DEFAULT, MY_MFS_CHECKED
+      MENUITEM "&Auto Detect",                                    IDM_NAME_ENCODING_AUTO
       MENUITEM "65001 (UTF-8)",                                   IDM_NAME_ENCODING_65001
       MENUITEM "1252 (ANSI - Latin I)",                           IDM_NAME_ENCODING_1252
       MENUITEM "437 (OEM - United States)",                       IDM_NAME_ENCODING_437

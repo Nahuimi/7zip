@@ -49,27 +49,33 @@ enum
   k_MenuIndex_Tools
 };
 
-static const UInt32 kCodePages[] =
+struct CCodePageMenuItem
 {
-  65001,
-  1252,
-  437,
-  850,
-  852,
-  866,
-  874,
-  932,
-  936,
-  949,
-  950,
-  1250,
-  1251,
-  1253,
-  1254,
-  1255,
-  1256,
-  1257,
-  1258
+  unsigned Id;
+  UInt32 CodePage;
+};
+
+static const CCodePageMenuItem kCodePageMenuItems[] =
+{
+  { IDM_NAME_ENCODING_65001, 65001 },
+  { IDM_NAME_ENCODING_1252, 1252 },
+  { IDM_NAME_ENCODING_437, 437 },
+  { IDM_NAME_ENCODING_850, 850 },
+  { IDM_NAME_ENCODING_852, 852 },
+  { IDM_NAME_ENCODING_866, 866 },
+  { IDM_NAME_ENCODING_874, 874 },
+  { IDM_NAME_ENCODING_932, 932 },
+  { IDM_NAME_ENCODING_936, 936 },
+  { IDM_NAME_ENCODING_949, 949 },
+  { IDM_NAME_ENCODING_950, 950 },
+  { IDM_NAME_ENCODING_1250, 1250 },
+  { IDM_NAME_ENCODING_1251, 1251 },
+  { IDM_NAME_ENCODING_1253, 1253 },
+  { IDM_NAME_ENCODING_1254, 1254 },
+  { IDM_NAME_ENCODING_1255, 1255 },
+  { IDM_NAME_ENCODING_1256, 1256 },
+  { IDM_NAME_ENCODING_1257, 1257 },
+  { IDM_NAME_ENCODING_1258, 1258 }
 };
 
 #ifdef Z7_LANG
@@ -618,25 +624,55 @@ void OnMenuActivating(HWND /* hWnd */, HMENU hMenu, int position)
   }
   else if (position == k_MenuIndex_Tools)
   {
+    NNameCodePage::EMode mode;
     UInt32 codePage = 0;
     unsigned checkedId = IDM_NAME_ENCODING_DEFAULT;
-    if (NCodePageUtils::GetForcedCodePage(codePage))
-      for (unsigned i = 0; i < Z7_ARRAY_SIZE(kCodePages); i++)
-        if (kCodePages[i] == codePage)
-        {
-          checkedId = IDM_NAME_ENCODING_DEFAULT + i + 1;
-          break;
-        }
+    if (NCodePageUtils::GetForcedCodePageInfo(mode, codePage))
+    {
+      if (mode == NNameCodePage::kAuto)
+        checkedId = IDM_NAME_ENCODING_AUTO;
+      else
+        for (unsigned i = 0; i < Z7_ARRAY_SIZE(kCodePageMenuItems); i++)
+          if (kCodePageMenuItems[i].CodePage == codePage)
+          {
+            checkedId = kCodePageMenuItems[i].Id;
+            break;
+          }
+    }
 
     CMenu subMenu;
     subMenu.Attach(FindSubMenuByCommand(hMenu, IDM_NAME_ENCODING));
     if ((HMENU)subMenu)
       subMenu.CheckRadioItem(
           IDM_NAME_ENCODING_DEFAULT,
-          IDM_NAME_ENCODING_1258,
+          IDM_NAME_ENCODING_AUTO,
           checkedId,
           MF_BYCOMMAND);
   }
+}
+
+static bool SetNameEncodingByMenuId(unsigned id)
+{
+  if (id == IDM_NAME_ENCODING_DEFAULT)
+  {
+    NCodePageUtils::ClearForcedCodePage();
+    return true;
+  }
+
+  if (id == IDM_NAME_ENCODING_AUTO)
+  {
+    NCodePageUtils::SetForcedCodePageAuto();
+    return true;
+  }
+
+  for (unsigned i = 0; i < Z7_ARRAY_SIZE(kCodePageMenuItems); i++)
+    if (kCodePageMenuItems[i].Id == id)
+    {
+      NCodePageUtils::SetForcedCodePage(kCodePageMenuItems[i].CodePage);
+      return true;
+    }
+
+  return false;
 }
 
 /*
@@ -994,6 +1030,7 @@ bool OnMenuCommand(HWND hWnd, unsigned id)
     case IDM_OPTIONS: OptionsDialog(hWnd, g_hInstance); break;
 
     case IDM_NAME_ENCODING_DEFAULT:
+    case IDM_NAME_ENCODING_AUTO:
     case IDM_NAME_ENCODING_65001:
     case IDM_NAME_ENCODING_1252:
     case IDM_NAME_ENCODING_437:
@@ -1014,13 +1051,8 @@ bool OnMenuCommand(HWND hWnd, unsigned id)
     case IDM_NAME_ENCODING_1257:
     case IDM_NAME_ENCODING_1258:
     {
-      const unsigned index = id - IDM_NAME_ENCODING_DEFAULT;
-      if (index == 0)
-        NCodePageUtils::ClearForcedCodePage();
-      else
-        NCodePageUtils::SetForcedCodePage(kCodePages[index - 1]);
-
-      ReloadPanelsForCodePageChange();
+      if (SetNameEncodingByMenuId(id))
+        ReloadPanelsForCodePageChange();
       break;
     }
           

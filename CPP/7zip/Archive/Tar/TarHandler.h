@@ -29,7 +29,10 @@ private:
   bool _posixMode_WasForced;
   bool _posixMode;
   bool _forceCodePage;
+  bool _autoCodePage;
+  bool _autoCodePage_Defined;
   UInt32 _specifiedCodePage;
+  UInt32 _autoCodePage_Value;
   UInt32 _curCodePage;
   UInt32 _openCodePage;
   // CTimeOptions TimeOptions;
@@ -44,6 +47,11 @@ private:
 
   CMyComPtr2_Create<ICompressCoder, NCompress::CCopyCoder> copyCoder;
 
+  UInt32 GetCurrentCodePage() const
+    { return _forceCodePage ? _specifiedCodePage : _autoCodePage_Value; }
+  UInt32 GetOutputCodePage() const
+    { return _forceCodePage ? _specifiedCodePage : (_autoCodePage_Defined ? _autoCodePage_Value : _openCodePage); }
+  void DetectAutoCodePage();
   HRESULT Open2(IInStream *stream, IArchiveOpenCallback *callback);
   HRESULT SkipTo(UInt32 index);
   void TarStringToUnicode(const AString &s, NWindows::NCOM::CPropVariant &prop, bool toOs = false) const;

@@ -2,6 +2,8 @@
 
 #include "StdAfx.h"
 
+#include "../../../Common/NameCodePageUtils.h"
+
 #include "../../../Common/ComTry.h"
 #include "../../../Common/StringConvert.h"
 #include "../../../Common/StringToInt.h"
@@ -275,7 +277,7 @@ Z7_COM7F_IMF(CHandler::UpdateItems(ISequentialOutStream *outStream, UInt32 numIt
       if (needSlash)
         name += kSlash;
 
-      const UINT codePage = _forceCodePage ? _specifiedCodePage : CP_OEMCP;
+      const UINT codePage = GetOutputCodePage();
       bool tryUtf8 = true;
 
       /*
@@ -563,10 +565,23 @@ Z7_COM7F_IMF(CHandler::SetProperties(const wchar_t * const *names, const PROPVAR
     }
     else if (name.IsEqualTo("cp"))
     {
+      NNameCodePage::EMode mode;
       UInt32 cp = CP_OEMCP;
-      RINOK(ParsePropToUInt32(L"", prop, cp))
-      _forceCodePage = true;
-      _specifiedCodePage = cp;
+      RINOK(NNameCodePage::ParseCodePageProp(prop, CP_OEMCP, mode, cp))
+      _forceCodePage = false;
+      _autoCodePage = false;
+      _autoCodePage_Defined = false;
+      _autoCodePage_Value = 0;
+      if (mode == NNameCodePage::kAuto)
+      {
+        _autoCodePage = true;
+        DetectAutoCodePage();
+      }
+      else
+      {
+        _forceCodePage = true;
+        _specifiedCodePage = cp;
+      }
     }
     else if (name.IsEqualTo("rsfx"))
     {

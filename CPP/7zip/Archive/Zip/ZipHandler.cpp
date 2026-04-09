@@ -3,6 +3,7 @@
 #include "StdAfx.h"
 
 #include "../../../Common/ComTry.h"
+#include "../../../Common/NameCodePageUtils.h"
 #include "../../../Common/StringConvert.h"
 
 #include "../../../Windows/PropVariant.h"
@@ -214,6 +215,14 @@ static AString BytesToString(const CByteBuffer &data)
   return s;
 }
 
+static bool HasInfoZipUnicodeExtra(const CExtraBlock &extra, UInt32 id)
+{
+  FOR_VECTOR (i, extra.SubBlocks)
+    if (extra.SubBlocks[i].ID == id)
+      return true;
+  return false;
+}
+
 IMP_IInArchive_Props
 IMP_IInArchive_ArcProps
 
@@ -386,7 +395,7 @@ Z7_COM7F_IMF(CHandler::GetProperty(UInt32 index, PROPID propID, PROPVARIANT *val
     case kpidPath:
     {
       UString res;
-      item.GetUnicodeString(res, item.Name, false, _forceCodePage, _specifiedCodePage);
+      item.GetUnicodeString(res, item.Name, false, UseSpecifiedCodePage(), GetCurrentCodePage());
       NItemName::ReplaceToOsSlashes_Remove_TailSlash(res,
           item.Is_MadeBy_Unix() // useBackslashReplacement
           );
@@ -498,7 +507,7 @@ Z7_COM7F_IMF(CHandler::GetProperty(UInt32 index, PROPID propID, PROPVARIANT *val
       if (item.Comment.Size() != 0)
       {
         UString res;
-        item.GetUnicodeString(res, BytesToString(item.Comment), true, _forceCodePage, _specifiedCodePage);
+        item.GetUnicodeString(res, BytesToString(item.Comment), true, UseSpecifiedCodePage(), GetCurrentCodePage());
         prop = res;
       }
       break;
@@ -685,6 +694,64 @@ Z7_COM7F_IMF(CHandler::GetProperty(UInt32 index, PROPID propID, PROPVARIANT *val
   COM_TRY_END
 }
 
+void CHandler::DetectAutoCodePage()
+{
+  _autoCodePage_Defined = false;
+  _autoCodePage_Value = 0;
+
+  if (!_autoCodePage || m_Items.IsEmpty())
+    return;
+
+  CObjectVector<AString> samples;
+  UInt32 defaultCodePage = CP_OEMCP;
+  unsigned numAcp = 0;
+  unsigned numOem = 0;
+  size_t totalSampleBytes = 0;
+
+  FOR_VECTOR (i, m_Items)
+  {
+    const CItemEx &item = m_Items[i];
+    if (item.IsUtf8())
+      continue;
+
+    if (item.GetCodePage() == CP_ACP)
+      numAcp++;
+    else
+      numOem++;
+
+    if (NNameCodePage::HasNonAsciiBytes(item.Name)
+        && !HasInfoZipUnicodeExtra(item.GetMainExtra(), NFileHeader::NExtraID::kIzUnicodeName))
+    {
+      samples.Add(item.Name);
+      totalSampleBytes += item.Name.Len();
+    }
+
+    if (item.Comment.Size() != 0
+        && !HasInfoZipUnicodeExtra(item.GetMainExtra(), NFileHeader::NExtraID::kIzUnicodeComment))
+    {
+      const AString comment = BytesToString(item.Comment);
+      if (NNameCodePage::HasNonAsciiBytes(comment))
+      {
+        samples.Add(comment);
+        totalSampleBytes += comment.Len();
+      }
+    }
+
+    if (samples.Size() >= 256 || totalSampleBytes >= ((size_t)1 << 15))
+      break;
+  }
+
+  if (numAcp > numOem)
+    defaultCodePage = CP_ACP;
+
+  UInt32 detectedCodePage = 0;
+  if (NNameCodePage::DetectCodePage(samples, defaultCodePage, detectedCodePage))
+  {
+    _autoCodePage_Defined = true;
+    _autoCodePage_Value = detectedCodePage;
+  }
+}
+
 
 
 /*
@@ -781,6 +848,8 @@ Z7_COM7F_IMF(CHandler::Open(IInStream *inStream,
       m_Items.Clear();
       m_Archive.ClearRefs(); // we don't want to clear error flags
     }
+    else
+      DetectAutoCodePage();
     // MarkAltStreams(m_Items);
     return res;
   }
@@ -792,6 +861,8 @@ Z7_COM7F_IMF(CHandler::Close())
 {
   m_Items.Clear();
   m_Archive.Close();
+  _autoCodePage_Defined = false;
+  _autoCodePage_Value = 0;
   return S_OK;
 }
 

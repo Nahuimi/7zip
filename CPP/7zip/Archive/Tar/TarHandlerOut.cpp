@@ -191,7 +191,7 @@ Z7_COM7F_IMF(CHandler::UpdateItems(ISequentialOutStream *outStream, UInt32 numIt
       )) || _seqStream)
     return E_NOTIMPL;
   CObjectVector<CUpdateItem> updateItems;
-  const UINT codePage = (_forceCodePage ? _specifiedCodePage : _openCodePage);
+  const UINT codePage = GetOutputCodePage();
   const unsigned utfFlags = g_Unicode_To_UTF8_Flags;
   /*
   // for debug only:

@@ -61,9 +61,20 @@ private:
   bool _force_SeqOutMode; // for creation
   bool _force_OpenSeq;
   bool _forceCodePage;
+  bool _autoCodePage;
+  bool _autoCodePage_Defined;
   UInt32 _specifiedCodePage;
+  UInt32 _autoCodePage_Value;
 
   DECL_EXTERNAL_CODECS_VARS
+
+  bool UseSpecifiedCodePage() const
+    { return _forceCodePage || _autoCodePage_Defined; }
+  UInt32 GetCurrentCodePage() const
+    { return _forceCodePage ? _specifiedCodePage : _autoCodePage_Value; }
+  UInt32 GetOutputCodePage() const
+    { return UseSpecifiedCodePage() ? GetCurrentCodePage() : (UInt32)CP_OEMCP; }
+  void DetectAutoCodePage();
 
   void InitMethodProps()
   {
@@ -78,7 +89,10 @@ private:
     _force_SeqOutMode = false;
     _force_OpenSeq = false;
     _forceCodePage = false;
+    _autoCodePage = false;
+    _autoCodePage_Defined = false;
     _specifiedCodePage = CP_OEMCP;
+    _autoCodePage_Value = 0;
   }
 
   // void MarkAltStreams(CObjectVector<CItemEx> &items);

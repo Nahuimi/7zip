@@ -4,6 +4,7 @@
 
 #include "../../../Common/ComTry.h"
 #include "../../../Common/IntToString.h"
+#include "../../../Common/NameCodePageUtils.h"
 #include "../../../Common/StringConvert.h"
 #include "../../../Common/UTFConvert.h"
 
@@ -109,6 +110,7 @@ Z7_COM7F_IMF(CHandler::GetArchiveProperty(PROPID propID, PROPVARIANT *value))
       const char *name = NULL;
       switch (_openCodePage)
       {
+        case CP_ACP: name = "WIN"; break;
         case CP_OEMCP: name = "OEM"; break;
         case CP_UTF8: name = "UTF-8"; break;
         default: break;
@@ -210,6 +212,56 @@ AString CEncodingCharacts::GetCharactsString() const
   return s;
 }
 
+void CHandler::DetectAutoCodePage()
+{
+  _autoCodePage_Defined = false;
+  _autoCodePage_Value = 0;
+  _curCodePage = _forceCodePage ? _specifiedCodePage : (UInt32)CP_UTF8;
+
+  if (!_autoCodePage || _items.IsEmpty())
+    return;
+
+  CObjectVector<AString> samples;
+  size_t totalSampleBytes = 0;
+
+  FOR_VECTOR (i, _items)
+  {
+    const CItemEx &item = _items[i];
+
+    if (NNameCodePage::HasNonAsciiBytes(item.Name))
+    {
+      samples.Add(item.Name);
+      totalSampleBytes += item.Name.Len();
+    }
+    if (NNameCodePage::HasNonAsciiBytes(item.LinkName))
+    {
+      samples.Add(item.LinkName);
+      totalSampleBytes += item.LinkName.Len();
+    }
+    if (NNameCodePage::HasNonAsciiBytes(item.User))
+    {
+      samples.Add(item.User);
+      totalSampleBytes += item.User.Len();
+    }
+    if (NNameCodePage::HasNonAsciiBytes(item.Group))
+    {
+      samples.Add(item.Group);
+      totalSampleBytes += item.Group.Len();
+    }
+
+    if (samples.Size() >= 256 || totalSampleBytes >= ((size_t)1 << 15))
+      break;
+  }
+
+  UInt32 detectedCodePage = 0;
+  if (NNameCodePage::DetectCodePage(samples, CP_UTF8, detectedCodePage))
+  {
+    _autoCodePage_Defined = true;
+    _autoCodePage_Value = detectedCodePage;
+    _curCodePage = detectedCodePage;
+  }
+}
+
 
 HRESULT CHandler::Open2(IInStream *stream, IArchiveOpenCallback *callback)
 {
@@ -217,6 +269,10 @@ HRESULT CHandler::Open2(IInStream *stream, IArchiveOpenCallback *callback)
   {
     RINOK(InStream_AtBegin_GetSize(stream, endPos))
   }
+
+  _autoCodePage_Defined = false;
+  _autoCodePage_Value = 0;
+  _curCodePage = _forceCodePage ? _specifiedCodePage : (UInt32)CP_UTF8;
   
   _arc._phySize_Defined = true;
   
@@ -287,6 +343,7 @@ HRESULT CHandler::Open2(IInStream *stream, IArchiveOpenCallback *callback)
       _curCodePage = k_DefaultCodePage;
   }
   */
+  DetectAutoCodePage();
   _openCodePage = _curCodePage;
 
   if (_items.Size() == 0)
@@ -350,6 +407,10 @@ Z7_COM7F_IMF(CHandler::Close())
   _items.Clear();
   _seqStream.Release();
   _stream.Release();
+  _autoCodePage_Defined = false;
+  _autoCodePage_Value = 0;
+  _curCodePage = _forceCodePage ? _specifiedCodePage : (UInt32)CP_UTF8;
+  _openCodePage = _curCodePage;
   return S_OK;
 }
 
@@ -1009,6 +1070,9 @@ Z7_COM7F_IMF(CHandler::GetStream(UInt32 index, ISequentialInStream **stream))
 void CHandler::Init()
 {
   _forceCodePage = false;
+  _autoCodePage = false;
+  _autoCodePage_Defined = false;
+  _autoCodePage_Value = 0;
   _curCodePage = _specifiedCodePage = CP_UTF8;  // CP_OEMCP;
   _posixMode = false;
   _posixMode_WasForced = false;
@@ -1039,10 +1103,25 @@ Z7_COM7F_IMF(CHandler::SetProperties(const wchar_t * const *names, const PROPVAR
     }
     else if (name.IsEqualTo("cp"))
     {
-      UInt32 cp = CP_OEMCP;
-      RINOK(ParsePropToUInt32(L"", prop, cp))
-      _forceCodePage = true;
-      _curCodePage = _specifiedCodePage = cp;
+      NNameCodePage::EMode mode;
+      UInt32 cp = CP_UTF8;
+      RINOK(NNameCodePage::ParseCodePageProp(prop, CP_UTF8, mode, cp))
+      _forceCodePage = false;
+      _autoCodePage = false;
+      _autoCodePage_Defined = false;
+      _autoCodePage_Value = 0;
+      _curCodePage = _specifiedCodePage = CP_UTF8;
+      if (mode == NNameCodePage::kAuto)
+      {
+        _autoCodePage = true;
+        DetectAutoCodePage();
+      }
+      else
+      {
+        _forceCodePage = true;
+        _curCodePage = _specifiedCodePage = cp;
+      }
+      _openCodePage = _curCodePage;
     }
     else if (name.IsPrefixedBy_Ascii_NoCase("mt"))
     {

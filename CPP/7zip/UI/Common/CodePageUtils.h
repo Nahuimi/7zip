@@ -5,6 +5,7 @@
 
 #include <stdlib.h>
 
+#include "../../../Common/NameCodePageUtils.h"
 #include "../../../Common/IntToString.h"
 #include "../../../Common/MyCom.h"
 
@@ -16,8 +17,9 @@ namespace NCodePageUtils {
 
 static const char * const kForceCodePageEnvVar = "Z7_FORCE_CODEC";
 
-static inline bool GetForcedCodePage(UInt32 &codePage)
+static inline bool GetForcedCodePageInfo(NNameCodePage::EMode &mode, UInt32 &codePage)
 {
+  mode = NNameCodePage::kDefault;
   codePage = 0;
 
   char *value = NULL;
@@ -25,20 +27,10 @@ static inline bool GetForcedCodePage(UInt32 &codePage)
   if (_dupenv_s(&value, &len, kForceCodePageEnvVar) != 0 || value == NULL)
     return false;
 
-  char *end = NULL;
-  const unsigned long parsed = strtoul(value, &end, 10);
-  const bool isValid =
-      end != value
-      && *end == 0
-      && parsed != 0;
+  const bool isValid = NNameCodePage::ParseCodePageName(GetUnicodeString(value), mode, codePage);
 
   free(value);
-
-  if (!isValid)
-    return false;
-
-  codePage = (UInt32)parsed;
-  return true;
+  return isValid;
 }
 
 static inline void SetForcedCodePage(UInt32 codePage)
@@ -48,15 +40,29 @@ static inline void SetForcedCodePage(UInt32 codePage)
   _putenv_s(kForceCodePageEnvVar, value);
 }
 
+static inline void SetForcedCodePageAuto()
+{
+  _putenv_s(kForceCodePageEnvVar, "auto");
+}
+
 static inline void ClearForcedCodePage()
 {
   _putenv_s(kForceCodePageEnvVar, "");
 }
 
+static inline bool GetForcedCodePage(UInt32 &codePage)
+{
+  NNameCodePage::EMode mode;
+  if (!GetForcedCodePageInfo(mode, codePage))
+    return false;
+  return mode == NNameCodePage::kSpecified;
+}
+
 static inline void ApplyForcedCodePage(IUnknown *archive)
 {
+  NNameCodePage::EMode mode;
   UInt32 codePage;
-  if (!archive || !GetForcedCodePage(codePage))
+  if (!archive || !GetForcedCodePageInfo(mode, codePage))
     return;
 
   CMyComPtr<ISetProperties> setProperties;
@@ -69,10 +75,11 @@ static inline void ApplyForcedCodePage(IUnknown *archive)
     L"cp"
   };
   const unsigned kNumProps = Z7_ARRAY_SIZE(names);
-  NWindows::NCOM::CPropVariant values[kNumProps] =
-  {
-    codePage
-  };
+  NWindows::NCOM::CPropVariant values[kNumProps];
+  if (mode == NNameCodePage::kAuto)
+    values[0] = L"auto";
+  else
+    values[0] = codePage;
 
   setProperties->SetProperties(names, values, kNumProps);
 }
