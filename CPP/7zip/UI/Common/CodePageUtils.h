@@ -3,7 +3,10 @@
 #ifndef ZIP7_INC_UI_COMMON_CODE_PAGE_UTILS_H
 #define ZIP7_INC_UI_COMMON_CODE_PAGE_UTILS_H
 
+#include <stdlib.h>
+
 #include "../../../Common/IntToString.h"
+#include "../../../Common/MyCom.h"
 
 #include "../../../Windows/PropVariant.h"
 
@@ -27,8 +30,7 @@ static inline bool GetForcedCodePage(UInt32 &codePage)
   const bool isValid =
       end != value
       && *end == 0
-      && parsed != 0
-      && parsed <= (unsigned long)(UInt32)0xFFFFFFFF;
+      && parsed != 0;
 
   free(value);
 
