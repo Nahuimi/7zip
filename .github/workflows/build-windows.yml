@@ -42,7 +42,8 @@ jobs:
         run: |
           call "%VS_INSTALL%\VC\Auxiliary\Build\${{ matrix.vcvars }}"
           cd /d CPP\7zip
-          nmake PLATFORM=${{ matrix.platform }}
+          set PLATFORM=${{ matrix.platform }}
+          nmake PLATFORM=%PLATFORM%
 
       - name: Collect binaries
         shell: powershell
@@ -51,8 +52,16 @@ jobs:
           $dest = Join-Path $PWD "artifacts"
           New-Item -ItemType Directory -Force -Path $dest | Out-Null
 
+          $exts = @(".exe", ".dll", ".sfx")
+          $dirRegex = "\\\\(?:${{ matrix.platform }}|o)\\\\"
           $files = Get-ChildItem -Recurse -File $root | Where-Object {
-            $_.FullName -match "\\\\${{ matrix.platform }}\\\\" -and $_.Extension -in ".exe", ".dll", ".sfx"
+            $exts -contains $_.Extension.ToLowerInvariant() -and $_.FullName -match $dirRegex
+          }
+
+          if (-not $files) {
+            $files = Get-ChildItem -Recurse -File $root | Where-Object {
+              $exts -contains $_.Extension.ToLowerInvariant()
+            }
           }
 
           if (-not $files) {
