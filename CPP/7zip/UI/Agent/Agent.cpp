@@ -17,6 +17,7 @@
 #endif
 
 #include "../Common/ArchiveExtractCallback.h"
+#include "../Common/CodePageUtils.h"
 #include "../FileManager/RegistryUtils.h"
 
 #include "Agent.h"
@@ -1664,6 +1665,7 @@ Z7_COM7F_IMF(CAgent::Open(
   if (!_archiveLink.Arcs.IsEmpty())
   {
     CArc &arc = _archiveLink.Arcs.Back();
+    NCodePageUtils::ApplyForcedCodePage(arc.Archive);
     if (!inStream)
     {
       arc.MTime.Set_From_FiTime(fi.MTime);

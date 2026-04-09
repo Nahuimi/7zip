@@ -43,6 +43,8 @@ Chinese Simplified
 书签(&A)
 工具(&T)
 帮助(&H)
+506
+文件名编码(&N)
 540
 打开(&O)
 当前窗口打开(&I)
@@ -95,6 +97,27 @@ Chinese Simplified
 800
 添加到书签(&A)
 书签
+860
+默认(&D)
+65001 (UTF-8)
+1252 (ANSI - 西欧 Latin I)
+437 (OEM - 美国)
+850 (OEM - 多语言 Latin I)
+852 (OEM - Latin II)
+866 (OEM - 俄语)
+874 (ANSI/OEM - 泰语)
+932 (ANSI/OEM - 日语 Shift-JIS)
+936 (ANSI/OEM - 简体中文 GBK)
+949 (ANSI/OEM - 韩语)
+950 (ANSI/OEM - 繁体中文 Big5)
+1250 (ANSI - 中欧)
+1251 (ANSI - 西里尔)
+1253 (ANSI - 希腊语)
+1254 (ANSI - 土耳其语)
+1255 (ANSI - 希伯来语)
+1256 (ANSI - 阿拉伯语)
+1257 (ANSI - 波罗的海)
+1258 (ANSI/OEM - 越南语)
 900
 选项(&O)
 基准测试(&B)

@@ -38,6 +38,7 @@
 #define IDM_FAVORITES            503
 #define IDM_TOOLS                504
 #define IDM_HELP                 505
+#define IDM_NAME_ENCODING        506
 
 #define IDM_OPEN                 540
 #define IDM_OPEN_INSIDE          541
@@ -109,6 +110,27 @@
 
 #define IDM_ADD_TO_FAVORITES     800
 #define IDS_BOOKMARK             801
+
+#define IDM_NAME_ENCODING_DEFAULT 860
+#define IDM_NAME_ENCODING_65001   861
+#define IDM_NAME_ENCODING_1252    862
+#define IDM_NAME_ENCODING_437     863
+#define IDM_NAME_ENCODING_850     864
+#define IDM_NAME_ENCODING_852     865
+#define IDM_NAME_ENCODING_866     866
+#define IDM_NAME_ENCODING_874     867
+#define IDM_NAME_ENCODING_932     868
+#define IDM_NAME_ENCODING_936     869
+#define IDM_NAME_ENCODING_949     870
+#define IDM_NAME_ENCODING_950     871
+#define IDM_NAME_ENCODING_1250    872
+#define IDM_NAME_ENCODING_1251    873
+#define IDM_NAME_ENCODING_1253    874
+#define IDM_NAME_ENCODING_1254    875
+#define IDM_NAME_ENCODING_1255    876
+#define IDM_NAME_ENCODING_1256    877
+#define IDM_NAME_ENCODING_1257    878
+#define IDM_NAME_ENCODING_1258    879
 
 #define IDM_OPTIONS              900
 #define IDM_BENCHMARK            901

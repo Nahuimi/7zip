@@ -15,6 +15,7 @@
 #include "../../Common/FilePathAutoRename.h"
 #include "../../Common/StreamUtils.h"
 #include "../Common/ExtractingFilePath.h"
+#include "../Common/CodePageUtils.h"
 
 #ifndef Z7_SFX
 #include "../Common/ZipRegistry.h"
@@ -552,6 +553,8 @@ void OpenResult_GUI(UString &s, const CCodecs *codecs, const CArchiveLink &arcLi
   {
     const CArc &arc = arcLink.Arcs[level];
     const CArcErrorInfo &er = arc.ErrorInfo;
+
+    NCodePageUtils::ApplyForcedCodePage(arc.Archive);
 
     if (!er.IsThereErrorOrWarning() && er.ErrorFormatIndex < 0)
       continue;

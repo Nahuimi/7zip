@@ -10,6 +10,7 @@
 #include "../../PropID.h"
 
 #include "../Common/CompressCall.h"
+#include "../Common/CodePageUtils.h"
 
 #include "AboutDialog.h"
 #include "App.h"
@@ -44,7 +45,31 @@ enum
   k_MenuIndex_File = 0,
   k_MenuIndex_Edit,
   k_MenuIndex_View,
-  k_MenuIndex_Bookmarks
+  k_MenuIndex_Bookmarks,
+  k_MenuIndex_Tools
+};
+
+static const UInt32 kCodePages[] =
+{
+  65001,
+  1252,
+  437,
+  850,
+  852,
+  866,
+  874,
+  932,
+  936,
+  949,
+  950,
+  1250,
+  1251,
+  1253,
+  1254,
+  1255,
+  1256,
+  1257,
+  1258
 };
 
 #ifdef Z7_LANG
@@ -315,6 +340,39 @@ static void CopyMenu(HMENU srcMenuSpec, HMENU destMenuSpec)
   }
 }
 
+static HMENU FindSubMenuByCommand(HMENU menuSpec, UINT commandId)
+{
+  CMenu menu;
+  menu.Attach(menuSpec);
+
+  const int numItems = menu.GetItemCount();
+  for (int i = 0; i < numItems; i++)
+  {
+    CMenuItem item;
+    item.fMask = MIIM_SUBMENU | MIIM_ID;
+    if (!menu.GetItem((UINT)i, true, item))
+      continue;
+    if (item.hSubMenu && item.wID == commandId)
+      return item.hSubMenu;
+  }
+
+  return NULL;
+}
+
+static void ReloadPanelsForCodePageChange()
+{
+  for (unsigned i = 0; i < g_App.NumPanels; i++)
+  {
+    unsigned index = i;
+    if (g_App.NumPanels == 1)
+      index = g_App.LastFocusedPanel;
+    CPanel &panel = g_App.Panels[index];
+    const UString path = panel._currentFolderPrefix;
+    panel.OpenRootFolder();
+    panel.BindToPathAndRefresh(path);
+  }
+}
+
 
 /* use for (needResetMenu):
     false : for call from program window creation code
@@ -557,6 +615,27 @@ void OnMenuActivating(HWND /* hWnd */, HMENU hMenu, int position)
       }
     }
 #endif
+  }
+  else if (position == k_MenuIndex_Tools)
+  {
+    UInt32 codePage = 0;
+    unsigned checkedId = IDM_NAME_ENCODING_DEFAULT;
+    if (NCodePageUtils::GetForcedCodePage(codePage))
+      for (unsigned i = 0; i < Z7_ARRAY_SIZE(kCodePages); i++)
+        if (kCodePages[i] == codePage)
+        {
+          checkedId = IDM_NAME_ENCODING_DEFAULT + i + 1;
+          break;
+        }
+
+    CMenu subMenu;
+    subMenu.Attach(FindSubMenuByCommand(hMenu, IDM_NAME_ENCODING));
+    if ((HMENU)subMenu)
+      subMenu.CheckRadioItem(
+          IDM_NAME_ENCODING_DEFAULT,
+          IDM_NAME_ENCODING_1258,
+          checkedId,
+          MF_BYCOMMAND);
   }
 }
 
@@ -913,6 +992,37 @@ bool OnMenuCommand(HWND hWnd, unsigned id)
 
     // Tools
     case IDM_OPTIONS: OptionsDialog(hWnd, g_hInstance); break;
+
+    case IDM_NAME_ENCODING_DEFAULT:
+    case IDM_NAME_ENCODING_65001:
+    case IDM_NAME_ENCODING_1252:
+    case IDM_NAME_ENCODING_437:
+    case IDM_NAME_ENCODING_850:
+    case IDM_NAME_ENCODING_852:
+    case IDM_NAME_ENCODING_866:
+    case IDM_NAME_ENCODING_874:
+    case IDM_NAME_ENCODING_932:
+    case IDM_NAME_ENCODING_936:
+    case IDM_NAME_ENCODING_949:
+    case IDM_NAME_ENCODING_950:
+    case IDM_NAME_ENCODING_1250:
+    case IDM_NAME_ENCODING_1251:
+    case IDM_NAME_ENCODING_1253:
+    case IDM_NAME_ENCODING_1254:
+    case IDM_NAME_ENCODING_1255:
+    case IDM_NAME_ENCODING_1256:
+    case IDM_NAME_ENCODING_1257:
+    case IDM_NAME_ENCODING_1258:
+    {
+      const unsigned index = id - IDM_NAME_ENCODING_DEFAULT;
+      if (index == 0)
+        NCodePageUtils::ClearForcedCodePage();
+      else
+        NCodePageUtils::SetForcedCodePage(kCodePages[index - 1]);
+
+      ReloadPanelsForCodePageChange();
+      break;
+    }
           
     case IDM_BENCHMARK: MyBenchmark(false); break;
     case IDM_BENCHMARK2: MyBenchmark(true); break;
