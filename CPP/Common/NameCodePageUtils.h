@@ -4,7 +4,6 @@
 #include "MyString.h"
 #include "MyVector.h"
 #include "StringConvert.h"
-#include "StringToInt.h"
 #include "UTFConvert.h"
 
 #include "../Windows/PropVariant.h"
@@ -71,9 +70,33 @@ static inline bool ParseCodePageName(const UString &name, EMode &mode, UInt32 &c
     return true;
   }
 
-  const wchar_t *end = NULL;
-  const UInt32 parsed = ConvertStringToUInt32(s, &end);
-  if (end != (const wchar_t *)s && *end == 0 && parsed != 0)
+  UInt32 parsed = 0;
+  bool isNumber = !s.IsEmpty();
+  for (unsigned i = 0; i < s.Len(); i++)
+  {
+    const wchar_t c = s[i];
+    if (c < L'0' || c > L'9')
+    {
+      isNumber = false;
+      break;
+    }
+
+    const UInt32 digit = (UInt32)(c - L'0');
+    if (parsed > ((UInt32)0xFFFFFFFF / 10))
+    {
+      isNumber = false;
+      break;
+    }
+    parsed *= 10;
+    if (parsed > (UInt32)0xFFFFFFFF - digit)
+    {
+      isNumber = false;
+      break;
+    }
+    parsed += digit;
+  }
+
+  if (isNumber && parsed != 0)
   {
     mode = kSpecified;
     codePage = parsed;
