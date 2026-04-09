@@ -191,6 +191,48 @@ UString Get_Correct_FsFile_Name(const UString &name)
 }
 
 
+static const char * const kArcExts[] =
+{
+    "7z"
+  , "bz2"
+  , "gz"
+  , "rar"
+  , "zip"
+};
+
+static bool IsItArcExt(const UString &ext)
+{
+  for (unsigned i = 0; i < Z7_ARRAY_SIZE(kArcExts); i++)
+    if (ext.IsEqualTo_Ascii_NoCase(kArcExts[i]))
+      return true;
+  return false;
+}
+
+UString GetSubFolderNameForExtract(const UString &arcName)
+{
+  int dotPos = arcName.ReverseFind_Dot();
+  if (dotPos < 0)
+    return Get_Correct_FsFile_Name(arcName) + L'~';
+
+  const UString ext = arcName.Ptr(dotPos + 1);
+  UString res = arcName.Left(dotPos);
+  res.TrimRight();
+  dotPos = res.ReverseFind_Dot();
+  if (dotPos > 0)
+  {
+    const UString ext2 = res.Ptr(dotPos + 1);
+    if ((ext.IsEqualTo_Ascii_NoCase("001") && IsItArcExt(ext2))
+        || (ext.IsEqualTo_Ascii_NoCase("rar") &&
+          (  ext2.IsEqualTo_Ascii_NoCase("part001")
+          || ext2.IsEqualTo_Ascii_NoCase("part01")
+          || ext2.IsEqualTo_Ascii_NoCase("part1"))))
+      res.DeleteFrom(dotPos);
+    res.TrimRight();
+  }
+  return Get_Correct_FsFile_Name(res);
+}
+
+
 void Correct_FsPath(bool absIsAllowed, bool keepAndReplaceEmptyPrefixes, UStringVector &parts, bool isDir)
 {
   unsigned i = 0;

@@ -19,6 +19,7 @@
 
 #include "../Common/ArchiveName.h"
 #include "../Common/CompressCall.h"
+#include "../Common/ExtractingFilePath.h"
 #include "../Common/ZipRegistry.h"
 
 #include "../Agent/IFolderArchive.h"
@@ -956,9 +957,6 @@ void CPanel::AddToArchive()
   }
   // KillSelection();
 }
-
-// function from ContextMenu.cpp
-UString GetSubFolderNameForExtract(const UString &arcPath);
 
 static UString GetSubFolderNameForExtract2(const UString &arcPath)
 {

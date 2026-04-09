@@ -1,0 +1,73 @@
+name: build-windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: x64
+            vcvars: vcvars64.bat
+          - platform: x86
+            vcvars: vcvarsamd64_x86.bat
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Locate Visual Studio
+        shell: powershell
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+          if (-not (Test-Path $vswhere)) {
+            throw "vswhere.exe was not found."
+          }
+          $installPath = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (-not $installPath) {
+            throw "Visual Studio with C++ build tools was not found."
+          }
+          "VS_INSTALL=$installPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build ${{ matrix.platform }}
+        shell: cmd
+        run: |
+          call "%VS_INSTALL%\VC\Auxiliary\Build\${{ matrix.vcvars }}"
+          cd /d CPP\7zip
+          nmake PLATFORM=${{ matrix.platform }}
+
+      - name: Collect binaries
+        shell: powershell
+        run: |
+          $root = (Resolve-Path "CPP\7zip").Path
+          $dest = Join-Path $PWD "artifacts"
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+
+          $files = Get-ChildItem -Recurse -File $root | Where-Object {
+            $_.FullName -match "\\\\${{ matrix.platform }}\\\\" -and $_.Extension -in ".exe", ".dll", ".sfx"
+          }
+
+          if (-not $files) {
+            throw "No build artifacts were found for ${{ matrix.platform }}."
+          }
+
+          foreach ($file in $files) {
+            $relative = $file.FullName.Substring($root.Length + 1)
+            $target = Join-Path $dest $relative
+            New-Item -ItemType Directory -Force -Path (Split-Path $target) | Out-Null
+            Copy-Item $file.FullName $target -Force
+          }
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: 7zip-windows-${{ matrix.platform }}
+          path: artifacts

@@ -142,6 +142,7 @@ static const char * const kHelpString =
     "  i : Show information about supported formats\n"
     "  l : List contents of archive\n"
     "  rn : Rename files in archive\n"
+    "  sx : Smart eXtract files with full paths\n"
     "  t : Test integrity of archive\n"
     "  u : Update files to archive\n"
     "  x : eXtract files with full paths\n"

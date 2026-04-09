@@ -76,6 +76,7 @@ public:
     kCommandNULL,
     kOpen,
     kExtract,
+    kSmartExtract,
     kExtractHere,
     kExtractTo,
     kTest,

@@ -252,10 +252,10 @@ static void ExtractGroupCommand(const UStringVector &arcPaths, UString &params, 
     ErrorMessageHRESULT(result);
 }
 
-void ExtractArchives(const UStringVector &arcPaths, const UString &outFolder, bool showDialog, bool elimDup, UInt32 writeZone)
+void ExtractArchives(const UStringVector &arcPaths, const UString &outFolder, bool showDialog, bool elimDup, UInt32 writeZone, bool smartExtract)
 {
   MY_TRY_BEGIN
-  UString params ('x');
+  UString params = smartExtract ? UString("sx") : UString("x");
   if (!outFolder.IsEmpty())
   {
     params += " -o";

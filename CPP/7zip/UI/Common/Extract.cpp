@@ -32,6 +32,19 @@ static void SetErrorMessage(const char *message,
   s += fs2us(path);
 }
 
+static UString GetTopLevelExtractPathPart(const UString &path)
+{
+  unsigned start = 0;
+  while (start < path.Len() && IsPathSepar(path[start]))
+    start++;
+
+  unsigned end = start;
+  while (end < path.Len() && !IsPathSepar(path[end]))
+    end++;
+
+  return path.Mid(start, end - start);
+}
+
 
 static HRESULT DecompressArchive(
     CCodecs *codecs,
@@ -71,8 +84,12 @@ static HRESULT DecompressArchive(
   bool elimIsPossible = false;
   UString elimPrefix; // only pure name without dir delimiter
   FString outDirReduced = outDir;
+  bool smartExtract_CreateSubDir = false;
+  bool smartExtract_TopLevelDefined = false;
+  UString smartExtract_TopLevelName;
   
-  if (options.ElimDup.Val && options.PathMode != NExtract::NPathMode::kAbsPaths)
+  if (options.ElimDup.Val && !options.SmartExtractMode
+      && options.PathMode != NExtract::NPathMode::kAbsPaths)
   {
     UString dirPrefix;
     SplitPathToParts_Smart(fs2us(outDir), dirPrefix, elimPrefix);
@@ -153,6 +170,27 @@ static HRESULT DecompressArchive(
           continue;
       }
 
+      if (options.SmartExtractMode)
+      {
+        const UString &path =
+          #ifdef SUPPORT_ALT_STREAMS
+            item.MainPath.IsEmpty() ? item.Path : item.MainPath;
+          #else
+            item.Path;
+          #endif
+        const UString topLevelName = GetTopLevelExtractPathPart(path);
+        if (!topLevelName.IsEmpty())
+        {
+          if (!smartExtract_TopLevelDefined)
+          {
+            smartExtract_TopLevelName = topLevelName;
+            smartExtract_TopLevelDefined = true;
+          }
+          else if (smartExtract_TopLevelName != topLevelName)
+            smartExtract_CreateSubDir = true;
+        }
+      }
+
       realIndices.Add(i);
     }
     
@@ -160,6 +198,24 @@ static HRESULT DecompressArchive(
     {
       callback->ThereAreNoFiles();
       return callback->ExtractResult(S_OK);
+    }
+  }
+
+  if (options.SmartExtractMode)
+  {
+    if (outDir.IsEmpty())
+      outDir = "." STRING_PATH_SEPARATOR;
+    else
+      NName::NormalizeDirPathPrefix(outDir);
+
+    if (smartExtract_CreateSubDir)
+    {
+      const CArc &arc0 = arcLink.Arcs.Front();
+      UString arcName = ExtractFileNameFromPath(arc0.Path);
+      if (arcName.IsEmpty())
+        arcName = arc0.DefaultName;
+      outDir += us2fs(GetSubFolderNameForExtract(arcName));
+      NName::NormalizeDirPathPrefix(outDir);
     }
   }
 

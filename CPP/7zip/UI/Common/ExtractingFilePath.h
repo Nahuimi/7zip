@@ -12,6 +12,10 @@ void Correct_AltStream_Name(UString &s);
 // replaces unsuported characters, and replaces "." , ".." and "" to "[]"
 UString Get_Correct_FsFile_Name(const UString &name);
 
+// Returns a safe folder name derived from archive file name and strips common
+// multi-volume suffixes such as .7z.001 and .part01.rar.
+UString GetSubFolderNameForExtract(const UString &arcName);
+
 /*
   Correct_FsPath() corrects path parts to prepare it for File System operations.
   It also corrects empty path parts like "\\\\":

@@ -17,6 +17,7 @@
 struct CExtractOptionsBase
 {
   CBoolPair ElimDup;
+  bool SmartExtractMode;
 
   bool ExcludeDirItems;
   bool ExcludeFileItems;
@@ -33,6 +34,7 @@ struct CExtractOptionsBase
   UString HashDir;
 
   CExtractOptionsBase():
+      SmartExtractMode(false),
       ExcludeDirItems(false),
       ExcludeFileItems(false),
       PathMode_Force(false),

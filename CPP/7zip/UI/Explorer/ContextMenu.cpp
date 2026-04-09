@@ -272,6 +272,7 @@ static const CContextMenuCommand g_Commands[] =
 {
   CMD_REC( kOpen,        "Open",        IDS_CONTEXT_OPEN),
   CMD_REC( kExtract,     "Extract",     IDS_CONTEXT_EXTRACT),
+  CMD_REC( kSmartExtract, "SmartExtract", IDS_CONTEXT_SMART_EXTRACT),
   CMD_REC( kExtractHere, "ExtractHere", IDS_CONTEXT_EXTRACT_HERE),
   CMD_REC( kExtractTo,   "ExtractTo",   IDS_CONTEXT_EXTRACT_TO),
   CMD_REC( kTest,        "Test",        IDS_CONTEXT_TEST),
@@ -426,48 +427,6 @@ static void MyAddSubMenu(
     throw 20190817;
 }
 
-
-static const char * const kArcExts[] =
-{
-    "7z"
-  , "bz2"
-  , "gz"
-  , "rar"
-  , "zip"
-};
-
-static bool IsItArcExt(const UString &ext)
-{
-  for (unsigned i = 0; i < Z7_ARRAY_SIZE(kArcExts); i++)
-    if (ext.IsEqualTo_Ascii_NoCase(kArcExts[i]))
-      return true;
-  return false;
-}
-
-UString GetSubFolderNameForExtract(const UString &arcName);
-UString GetSubFolderNameForExtract(const UString &arcName)
-{
-  int dotPos = arcName.ReverseFind_Dot();
-  if (dotPos < 0)
-    return Get_Correct_FsFile_Name(arcName) + L'~';
-
-  const UString ext = arcName.Ptr(dotPos + 1);
-  UString res = arcName.Left(dotPos);
-  res.TrimRight();
-  dotPos = res.ReverseFind_Dot();
-  if (dotPos > 0)
-  {
-    const UString ext2 = res.Ptr(dotPos + 1);
-    if ((ext.IsEqualTo_Ascii_NoCase("001") && IsItArcExt(ext2))
-        || (ext.IsEqualTo_Ascii_NoCase("rar") &&
-          (  ext2.IsEqualTo_Ascii_NoCase("part001")
-          || ext2.IsEqualTo_Ascii_NoCase("part01")
-          || ext2.IsEqualTo_Ascii_NoCase("part1"))))
-      res.DeleteFrom(dotPos);
-    res.TrimRight();
-  }
-  return Get_Correct_FsFile_Name(res);
-}
 
 static void ReduceString(UString &s)
 {
@@ -791,7 +750,7 @@ Z7_COMWF_B CZipContextMenu::QueryContextMenu(HMENU hMenu, UINT indexMenu,
 
   ODS("### 150")
 
-  if (_fileNames.Size() > 0 && currentCommandID + 10 <= commandIDLast)
+  if (_fileNames.Size() > 0 && currentCommandID + 11 <= commandIDLast)
   {
     ODS("### needExtract list START")
     const bool needExtendedVerbs = ((flags & Z7_WIN_CMF_EXTENDEDVERBS) != 0);
@@ -842,6 +801,14 @@ Z7_COMWF_B CZipContextMenu::QueryContextMenu(HMENU hMenu, UINT indexMenu,
           CCommandMapItem cmi;
           cmi.Folder = baseFolder + specFolder;
           AddCommand(kExtract, mainString, cmi);
+          MyInsertMenu(popupMenu, subIndex++, currentCommandID++, mainString, bitmap);
+        }
+
+        if ((contextMenuFlags & NContextMenuFlags::kSmartExtract) != 0)
+        {
+          CCommandMapItem cmi;
+          cmi.Folder = baseFolder;
+          AddCommand(kSmartExtract, mainString, cmi);
           MyInsertMenu(popupMenu, subIndex++, currentCommandID++, mainString, bitmap);
         }
 
@@ -1274,6 +1241,7 @@ HRESULT CZipContextMenu::InvokeCommandCommon(const CCommandMapItem &cmi)
         break;
       }
       case kExtract:
+      case kSmartExtract:
       case kExtractHere:
       case kExtractTo:
       {
@@ -1285,7 +1253,8 @@ HRESULT CZipContextMenu::InvokeCommandCommon(const CCommandMapItem &cmi)
         ExtractArchives(_fileNames, cmi.Folder,
             (cmdID == kExtract), // showDialog
             (cmdID == kExtractTo) && _elimDup.Val, // elimDup
-            _writeZone
+            _writeZone,
+            (cmdID == kSmartExtract)
             );
         break;
       }
