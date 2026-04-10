@@ -22,6 +22,7 @@ CONSOLE_OBJS = \
   $O\UserInputUtils.obj \
 
 COMMON_OBJS = \
+  $O\CompactEncDet.obj \
   $O\CommandLineParser.obj \
   $O\CRC.obj \
   $O\IntToString.obj \

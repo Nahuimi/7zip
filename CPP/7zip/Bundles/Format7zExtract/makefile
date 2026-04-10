@@ -4,6 +4,7 @@ CFLAGS = $(CFLAGS) \
   -DZ7_EXTRACT_ONLY \
 
 COMMON_OBJS = \
+  $O\CompactEncDet.obj \
   $O\CRC.obj \
   $O\CrcReg.obj \
   $O\IntToString.obj \

@@ -23,6 +23,7 @@ GUI_OBJS = \
   $O\ExtractGUI.obj \
 
 COMMON_OBJS = \
+  $O\CompactEncDet.obj \
   $O\CRC.obj \
   $O\CommandLineParser.obj \
   $O\IntToString.obj \

@@ -5,6 +5,7 @@ CURRENT_OBJS = \
   $O\Client7z.obj \
 
 COMMON_OBJS = \
+  $O\CompactEncDet.obj \
   $O\IntToString.obj \
   $O\NewHandler.obj \
   $O\MyString.obj \

@@ -3,6 +3,7 @@ CFLAGS = $(CFLAGS)  \
   -DZ7_EXTERNAL_CODECS \
 
 COMMON_OBJS = \
+  $O\CompactEncDet.obj \
   $O\CommandLineParser.obj \
   $O\CRC.obj \
   $O\DynLimBuf.obj \

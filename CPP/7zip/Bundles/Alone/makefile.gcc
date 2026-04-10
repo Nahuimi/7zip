@@ -117,6 +117,7 @@ UI_COMMON_OBJS = \
   $O/UpdateProduce.o \
 
 COMMON_OBJS = \
+  $O/CompactEncDet.o \
   $O/CommandLineParser.o \
   $O/CRC.o \
   $O/CrcReg.o \

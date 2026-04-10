@@ -4,6 +4,7 @@ CFLAGS = $(CFLAGS) \
   -DZ7_NO_CRYPTO
 
 COMMON_OBJS = \
+  $O\CompactEncDet.obj \
   $O\CRC.obj \
   $O\CrcReg.obj \
   $O\IntToString.obj \

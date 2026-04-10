@@ -11,6 +11,7 @@ CFLAGS = $(CFLAGS) -DZ7_ZIP_LZFSE_DISABLE
 # USE_C_LZFINDOPT = 1
 
 COMMON_OBJS = \
+  $O\CompactEncDet.obj \
   $O\CommandLineParser.obj \
   $O\CRC.obj \
   $O\CrcReg.obj \

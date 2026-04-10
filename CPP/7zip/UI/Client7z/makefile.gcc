@@ -35,6 +35,7 @@ CURRENT_OBJS = \
   $O/Client7z.o \
 
 COMMON_OBJS = \
+  $O/CompactEncDet.o \
   $O/IntToString.o \
   $O/MyString.o \
   $O/MyVector.o \

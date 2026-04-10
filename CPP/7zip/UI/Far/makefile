@@ -22,6 +22,7 @@ CURRENT_OBJS = \
   $O\UpdateCallbackFar.obj \
 
 COMMON_OBJS = \
+  $O\CompactEncDet.obj \
   $O\DynLimBuf.obj \
   $O\IntToString.obj \
   $O\NewHandler.obj \

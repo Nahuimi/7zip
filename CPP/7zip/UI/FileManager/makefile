@@ -7,6 +7,7 @@ CFLAGS = $(CFLAGS) \
 !include "FM.mak"
 
 COMMON_OBJS = \
+  $O\CompactEncDet.obj \
   $O\DynLimBuf.obj \
   $O\IntToString.obj \
   $O\Lang.obj \

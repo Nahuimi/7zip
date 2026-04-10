@@ -17,6 +17,7 @@ EXPLORER_OBJS = \
   $O\MyMessages.obj \
 
 COMMON_OBJS = \
+  $O\CompactEncDet.obj \
   $O\IntToString.obj \
   $O\Lang.obj \
   $O\MyString.obj \

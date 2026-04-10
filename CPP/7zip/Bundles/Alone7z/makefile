@@ -11,6 +11,7 @@ CFLAGS = $(CFLAGS) -DZ7_PROG_VARIANT_R
 # CONSOLE_VARIANT_FLAGS=-DZ7_PROG_VARIANT_R
 
 COMMON_OBJS = \
+  $O\CompactEncDet.obj \
   $O\CommandLineParser.obj \
   $O\CRC.obj \
   $O\CrcReg.obj \
