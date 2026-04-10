@@ -28,7 +28,7 @@ static bool IsCjkCodePage(UInt32 codePage)
 
 static UInt32 ConvertEncodingToCodePage(Encoding encoding)
 {
-  switch (encoding)
+  switch ((unsigned)encoding)
   {
     case UTF8:
       return CP_UTF8;
