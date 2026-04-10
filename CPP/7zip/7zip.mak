@@ -34,6 +34,9 @@ OBJS = \
 
 # MAK_SINGLE_FILE = 1
 
+$O\CompactEncDet.obj: ../../../Common/CompactEncDet.cpp
+	$(CC) $(CFLAGS_O1) -wd4738 $**
+
 !IFDEF MAK_SINGLE_FILE
 
 !IFDEF CURRENT_OBJS

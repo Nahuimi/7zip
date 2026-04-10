@@ -2,7 +2,23 @@
 
 7-Zip website: [7-zip.org](https://7-zip.org)
 
+中文文档： [README.zh-CN.md](README.zh-CN.md)
+
+## Overview
+
+This repository is a fork of 7-Zip with several Windows-focused enhancements on top of the upstream codebase.
+
+The source tree mainly includes:
+
+- `CPP/7zip/`: main C++ implementation and Windows application code
+- `C/`: low-level codec and utility code
+- `Asm/`: hand-written assembly optimizations
+- `DOC/`: upstream documentation and format references
+- `Lang/`: localization resources
+
 ## Custom Changes
+
+### Smart Extract
 
 This fork adds an intelligent extract mode for Windows builds.
 
@@ -14,6 +30,8 @@ This fork adds an intelligent extract mode for Windows builds.
 - Explorer context menu:
   - Adds `Smart Extract`
   - The entry is placed below `Extract files...`
+
+### Name Encoding Selector in 7zFM
 
 This fork also ports the 7zFM name-encoding selector from [Autori/7zip-codepage](https://github.com/Autori/7zip-codepage).
 

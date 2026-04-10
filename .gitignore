@@ -1,0 +1,58 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+AGENTS.md
+CLAUDE.md
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+
+# Archive/test artifacts that should not be committed
+test.7z
+*.zip
+
+# Build outputs
+*.obj
+*.o
+*.a
+*.lib
+*.exp
+*.pdb
+*.idb
+*.ilk
+*.res
+*.manifest
+*.map
+*.pch
+*.suo
+*.user
+*.ncb
+*.aps
+
+*.exe
+*.dll
+*.so
+*.dylib
+*.sfx
+
+# Common output directories created by 7-Zip builds
+/**/o/
+/**/o_*
+/**/b/
+/**/b64/
+/**/b32/
+/**/x64/
+/**/x86/
+/**/arm64/
+/**/Release/
+/**/Debug/

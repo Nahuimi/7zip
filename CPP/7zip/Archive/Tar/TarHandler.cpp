@@ -1116,7 +1116,7 @@ Z7_COM7F_IMF(CHandler::SetProperties(const wchar_t * const *names, const PROPVAR
         _autoCodePage = true;
         DetectAutoCodePage();
       }
-      else
+      else if (mode == NNameCodePage::kSpecified)
       {
         _forceCodePage = true;
         _curCodePage = _specifiedCodePage = cp;

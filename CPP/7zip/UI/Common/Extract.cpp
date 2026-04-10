@@ -35,14 +35,27 @@ static void SetErrorMessage(const char *message,
 static UString GetTopLevelExtractPathPart(const UString &path)
 {
   unsigned start = 0;
-  while (start < path.Len() && IsPathSepar(path[start]))
-    start++;
 
-  unsigned end = start;
-  while (end < path.Len() && !IsPathSepar(path[end]))
-    end++;
+  for (;;)
+  {
+    while (start < path.Len() && IsPathSepar(path[start]))
+      start++;
 
-  return path.Mid(start, end - start);
+    unsigned end = start;
+    while (end < path.Len() && !IsPathSepar(path[end]))
+      end++;
+
+    const unsigned len = end - start;
+    if (len == 0)
+      return UString();
+
+    const wchar_t *part = path.Ptr(start);
+    if (!(len == 1 && part[0] == '.')
+        && !(len == 2 && part[0] == '.' && part[1] == '.'))
+      return path.Mid(start, len);
+
+    start = end;
+  }
 }
 
 

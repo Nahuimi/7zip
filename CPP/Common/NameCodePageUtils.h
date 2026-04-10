@@ -110,7 +110,7 @@ static inline bool ParseCodePageName(const UString &name, EMode &mode, UInt32 &c
 static inline HRESULT ParseCodePageProp(const PROPVARIANT &prop,
     UInt32 defaultCodePage, EMode &mode, UInt32 &codePage)
 {
-  mode = kSpecified;
+  mode = kDefault;
   codePage = defaultCodePage;
 
   switch (prop.vt)
@@ -120,11 +120,13 @@ static inline HRESULT ParseCodePageProp(const PROPVARIANT &prop,
     case VT_UI4:
       if (prop.ulVal == 0)
         return E_INVALIDARG;
+      mode = kSpecified;
       codePage = prop.ulVal;
       return S_OK;
     case VT_I4:
       if (prop.lVal <= 0)
         return E_INVALIDARG;
+      mode = kSpecified;
       codePage = (UInt32)prop.lVal;
       return S_OK;
     case VT_BSTR:
