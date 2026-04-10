@@ -2415,7 +2415,11 @@ void InitialBytesBoost(const uint8* src,
 
 
 // Descending order
-int IntCompare(const void* v1, const void* v2) {
+#if defined(_MSC_VER)
+static int __cdecl IntCompare(const void* v1, const void* v2) {
+#else
+static int IntCompare(const void* v1, const void* v2) {
+#endif
   const int* p1 = reinterpret_cast<const int*>(v1);
   const int* p2 = reinterpret_cast<const int*>(v2);
   if (*p1 < *p2) {return 1;}
