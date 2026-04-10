@@ -180,6 +180,7 @@ bool DetectCodePage(const CObjectVector<AString> &samples,
   #pragma warning(disable : 4244)
   #pragma warning(disable : 4267)
   #pragma warning(disable : 4310)
+  #pragma warning(disable : 4738)
   #pragma warning(disable : 4334)
   #pragma warning(disable : 4996)
   #pragma warning(disable : 4701)
