@@ -1,4 +1,5 @@
 COMMON_OBJS = \
+  $O\CompactEncDet.obj \
   $O\CRC.obj \
   $O\CrcReg.obj \
   $O\DynLimBuf.obj \

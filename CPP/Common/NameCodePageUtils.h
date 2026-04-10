@@ -3,6 +3,7 @@
 
 #include "MyString.h"
 #include "MyVector.h"
+#include "CompactEncDet.h"
 #include "StringConvert.h"
 #include "UTFConvert.h"
 
@@ -313,7 +314,7 @@ static inline void UpdateScoreForString(CScore &score, UInt32 codePage, const AS
   }
 }
 
-static inline bool DetectCodePage(const CObjectVector<AString> &samples,
+static inline bool DetectCodePage_Heuristic(const CObjectVector<AString> &samples,
     UInt32 defaultCodePage, UInt32 &detectedCodePage)
 {
   detectedCodePage = 0;
@@ -434,6 +435,25 @@ static inline bool DetectCodePage(const CObjectVector<AString> &samples,
 
   detectedCodePage = candidates[bestIndex];
   return true;
+}
+
+static inline bool DetectCodePage(const CObjectVector<AString> &samples,
+    UInt32 defaultCodePage, UInt32 &detectedCodePage)
+{
+  detectedCodePage = 0;
+
+  bool isReliable = false;
+  UInt32 codePage = 0;
+  if (NCompactEncDet::DetectCodePage(samples, codePage, isReliable))
+  {
+    if (ResolveCodePage(codePage) != ResolveCodePage(defaultCodePage))
+    {
+      detectedCodePage = codePage;
+      return true;
+    }
+  }
+
+  return DetectCodePage_Heuristic(samples, defaultCodePage, detectedCodePage);
 }
 
 }

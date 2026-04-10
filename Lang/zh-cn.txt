@@ -118,6 +118,8 @@ Chinese Simplified
 1256 (ANSI - 阿拉伯语)
 1257 (ANSI - 波罗的海)
 1258 (ANSI/OEM - 越南语)
+880
+自动检测
 900
 选项(&O)
 基准测试(&B)

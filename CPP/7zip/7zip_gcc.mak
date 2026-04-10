@@ -289,6 +289,9 @@ $O/CommandLineParser.o: ../../../Common/CommandLineParser.cpp
 $O/CRC.o: ../../../Common/CRC.cpp
 	$(CXX) $(CXXFLAGS) $<
 
+$O/CompactEncDet.o: ../../../Common/CompactEncDet.cpp
+	$(CXX) $(CXXFLAGS) $<
+
 $O/CrcReg.o: ../../../Common/CrcReg.cpp
 	$(CXX) $(CXXFLAGS) $<
 

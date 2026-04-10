@@ -48,32 +48,61 @@ jobs:
       - name: Pack replacement files
         shell: powershell
         run: |
-          $packageRoot = Join-Path $PWD "package"
-          $langRoot = Join-Path $packageRoot "Lang"
-          New-Item -ItemType Directory -Force -Path $langRoot | Out-Null
+          function New-ReplacementPackage {
+            param(
+              [string]$Platform,
+              [string]$PackageRoot,
+              [bool]$IncludeAltExplorer
+            )
 
-          $copyMap = @(
-            @{ Source = "CPP\7zip\Bundles\Fm\x64\7zFM.exe"; Destination = "7zFM.exe" },
-            @{ Source = "CPP\7zip\UI\GUI\x64\7zG.exe"; Destination = "7zG.exe" },
-            @{ Source = "CPP\7zip\UI\Console\x64\7z.exe"; Destination = "7z.exe" },
-            @{ Source = "CPP\7zip\Bundles\Format7zF\x64\7z.dll"; Destination = "7z.dll" },
-            @{ Source = "CPP\7zip\UI\Explorer\x64\7-zip.dll"; Destination = "7-zip.dll" },
-            @{ Source = "CPP\7zip\UI\Explorer\x86\7-zip.dll"; Destination = "7-zip32.dll" },
-            @{ Source = "CPP\7zip\Bundles\SFXWin\x64\7z.sfx"; Destination = "7z.sfx" },
-            @{ Source = "CPP\7zip\Bundles\SFXCon\x64\7zCon.sfx"; Destination = "7zCon.sfx" },
-            @{ Source = "Lang\en.ttt"; Destination = "Lang\en.ttt" },
-            @{ Source = "Lang\zh-cn.txt"; Destination = "Lang\zh-cn.txt" }
-          )
-
-          foreach ($item in $copyMap) {
-            if (-not (Test-Path $item.Source)) {
-              throw "Missing expected file: $($item.Source)"
+            if (Test-Path $PackageRoot) {
+              Remove-Item $PackageRoot -Recurse -Force
             }
 
-            $target = Join-Path $packageRoot $item.Destination
-            New-Item -ItemType Directory -Force -Path (Split-Path $target) | Out-Null
-            Copy-Item $item.Source $target -Force
+            $langRoot = Join-Path $PackageRoot "Lang"
+            New-Item -ItemType Directory -Force -Path $langRoot | Out-Null
+
+            $copyMap = @(
+              @{ Source = "CPP\7zip\Bundles\Fm\$Platform\7zFM.exe"; Destination = "7zFM.exe" },
+              @{ Source = "CPP\7zip\UI\GUI\$Platform\7zG.exe"; Destination = "7zG.exe" },
+              @{ Source = "CPP\7zip\UI\Console\$Platform\7z.exe"; Destination = "7z.exe" },
+              @{ Source = "CPP\7zip\Bundles\Format7zF\$Platform\7z.dll"; Destination = "7z.dll" },
+              @{ Source = "CPP\7zip\UI\Explorer\$Platform\7-zip.dll"; Destination = "7-zip.dll" },
+              @{ Source = "CPP\7zip\Bundles\SFXWin\$Platform\7z.sfx"; Destination = "7z.sfx" },
+              @{ Source = "CPP\7zip\Bundles\SFXCon\$Platform\7zCon.sfx"; Destination = "7zCon.sfx" },
+              @{ Source = "Lang\en.ttt"; Destination = "Lang\en.ttt" },
+              @{ Source = "Lang\zh-cn.txt"; Destination = "Lang\zh-cn.txt" }
+            )
+
+            if ($IncludeAltExplorer) {
+              $copyMap += @{ Source = "CPP\7zip\UI\Explorer\x86\7-zip.dll"; Destination = "7-zip32.dll" }
+            }
+
+            foreach ($item in $copyMap) {
+              if (-not (Test-Path $item.Source)) {
+                throw "Missing expected file: $($item.Source)"
+              }
+
+              $target = Join-Path $PackageRoot $item.Destination
+              New-Item -ItemType Directory -Force -Path (Split-Path $target) | Out-Null
+              Copy-Item $item.Source $target -Force
+            }
           }
+
+          New-ReplacementPackage -Platform "x64" -PackageRoot (Join-Path $PWD "package-x64") -IncludeAltExplorer $true
+          New-ReplacementPackage -Platform "x86" -PackageRoot (Join-Path $PWD "package-x86") -IncludeAltExplorer $false
+
+      - name: Pack x86 replacement archive
+        shell: powershell
+        run: |
+          $zipPath = Join-Path $PWD "7zip-windows-replacement-x86.zip"
+          $packageRoot = Join-Path $PWD "package-x86"
+
+          if (Test-Path $zipPath) {
+            Remove-Item $zipPath -Force
+          }
+
+          Compress-Archive -Path (Join-Path $packageRoot '*') -DestinationPath $zipPath -CompressionLevel Optimal
 
       - name: Pack all build products
         shell: powershell
@@ -119,8 +148,14 @@ jobs:
       - name: Upload replacement artifact
         uses: actions/upload-artifact@v4
         with:
-          name: 7zip-windows-replacement
-          path: package
+          name: 7zip-windows-replacement-x64
+          path: package-x64
+
+      - name: Upload x86 replacement archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: 7zip-windows-replacement-x86
+          path: 7zip-windows-replacement-x86.zip
 
       - name: Upload full product archive
         uses: actions/upload-artifact@v4

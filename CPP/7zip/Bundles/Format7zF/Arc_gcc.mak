@@ -40,6 +40,7 @@ endif
 
 
 COMMON_OBJS = \
+  $O/CompactEncDet.o \
   $O/CRC.o \
   $O/CrcReg.o \
   $O/DynLimBuf.o \
