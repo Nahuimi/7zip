@@ -69,18 +69,26 @@ struct CRefItem
 
 class CHandler Z7_final:
   public IInArchive,
+  public ISetProperties,
   Z7_PUBLIC_ISetCompressCodecsInfo_IFEC
   public CMyUnknownImp
 {
   Z7_COM_QI_BEGIN2(IInArchive)
+  Z7_COM_QI_ENTRY(ISetProperties)
   Z7_COM_QI_ENTRY_ISetCompressCodecsInfo_IFEC
   Z7_COM_QI_END
   Z7_COM_ADDREF_RELEASE
   
   Z7_IFACE_COM7_IMP(IInArchive)
+  Z7_IFACE_COM7_IMP(ISetProperties)
   DECL_ISetCompressCodecsInfo
 
   bool _isArc;
+  bool _forceCodePage;
+  bool _autoCodePage;
+  bool _autoCodePage_Defined;
+  UInt32 _specifiedCodePage;
+  UInt32 _autoCodePage_Value;
 
   CRecordVector<CRefItem> _refItems;
   CObjectVector<CItem> _items;
@@ -95,6 +103,11 @@ class CHandler Z7_final:
 
   UInt64 GetPackSize(unsigned refIndex) const;
   bool IsSolid(unsigned refIndex) const;
+  UInt32 GetCurrentCodePage() const
+    { return _forceCodePage ? _specifiedCodePage : _autoCodePage_Value; }
+  UInt32 GetEffectiveCodePage() const
+    { return _forceCodePage ? _specifiedCodePage : (_autoCodePage_Defined ? _autoCodePage_Value : (UInt32)CP_OEMCP); }
+  void DetectAutoCodePage();
   
   /*
   void AddErrorMessage(const AString &s)
@@ -108,6 +121,17 @@ class CHandler Z7_final:
   HRESULT Open2(IInStream *stream,
       const UInt64 *maxCheckStartPosition,
       IArchiveOpenCallback *openCallback);
+public:
+  CHandler():
+      _isArc(false),
+      _forceCodePage(false),
+      _autoCodePage(false),
+      _autoCodePage_Defined(false),
+      _specifiedCodePage(CP_OEMCP),
+      _autoCodePage_Value(0),
+      _errorFlags(0),
+      _warningFlags(0)
+      {}
 };
 
 }}

@@ -8,6 +8,7 @@
 #include "../../../Common/IntToString.h"
 #include "../../../Common/MyBuffer2.h"
 #include "../../../Common/MyLinux.h"
+#include "../../../Common/NameCodePageUtils.h"
 #include "../../../Common/UTFConvert.h"
 
 #include "../../../Windows/PropVariantUtils.h"
@@ -813,7 +814,8 @@ static const Byte kArcProps[] =
   // kpidEncrypted,
   kpidIsVolume,
   kpidVolumeIndex,
-  kpidNumVolumes
+  kpidNumVolumes,
+  kpidCodePage
   // kpidCommented
 };
 
@@ -841,6 +843,41 @@ bool CHandler::IsSolid(unsigned refIndex) const
   return item.IsSolid();
 }
 
+void CHandler::DetectAutoCodePage()
+{
+  _autoCodePage_Defined = false;
+  _autoCodePage_Value = 0;
+
+  if (!_autoCodePage || _items.IsEmpty())
+    return;
+
+  CObjectVector<AString> samples;
+  size_t totalSampleBytes = 0;
+
+  FOR_VECTOR (i, _items)
+  {
+    const CItem &item = _items[i];
+    if (item.Name.IsEmpty())
+      continue;
+    if (item.HasUnicodeName() && !item.UnicodeName.IsEmpty())
+      continue;
+    if (!NNameCodePage::HasNonAsciiBytes(item.Name))
+      continue;
+
+    samples.Add(item.Name);
+    totalSampleBytes += item.Name.Len();
+    if (samples.Size() >= 256 || totalSampleBytes >= ((size_t)1 << 15))
+      break;
+  }
+
+  UInt32 detectedCodePage = 0;
+  if (NNameCodePage::DetectCodePage(samples, CP_OEMCP, detectedCodePage))
+  {
+    _autoCodePage_Defined = true;
+    _autoCodePage_Value = detectedCodePage;
+  }
+}
+
 Z7_COM7F_IMF(CHandler::GetArchiveProperty(PROPID propID, PROPVARIANT *value))
 {
   COM_TRY_BEGIN
@@ -864,6 +901,23 @@ Z7_COM7F_IMF(CHandler::GetArchiveProperty(PROPID propID, PROPVARIANT *value))
     // case kpidEncrypted: prop = _arcInfo.IsEncrypted(); break; // it's for encrypted names.
     case kpidIsVolume: prop = _arcInfo.IsVolume(); break;
     case kpidNumVolumes: prop = (UInt32)_arcs.Size(); break;
+    case kpidCodePage:
+    {
+      char sz[16];
+      const char *name = NULL;
+      switch (GetEffectiveCodePage())
+      {
+        case CP_OEMCP: name = "OEM"; break;
+        case CP_UTF8: name = "UTF-8"; break;
+      }
+      if (!name)
+      {
+        ConvertUInt32ToString(GetEffectiveCodePage(), sz);
+        name = sz;
+      }
+      prop = name;
+      break;
+    }
     case kpidOffset: if (_arcs.Size() == 1 && _arcInfo.StartPos != 0) prop = _arcInfo.StartPos; break;
 
     case kpidTotalPhySize:
@@ -1005,7 +1059,7 @@ Z7_COM7F_IMF(CHandler::GetProperty(UInt32 index, PROPID propID, PROPVARIANT *val
         u = mainItem->GetName();
       u += item.GetName();
       */
-      prop = (const wchar_t *)NItemName::WinPathToOsPath(item.GetName());
+      prop = (const wchar_t *)NItemName::WinPathToOsPath(item.GetName(GetEffectiveCodePage()));
       break;
     }
     case kpidIsDir: prop = item.IsDir(); break;
@@ -1057,6 +1111,48 @@ Z7_COM7F_IMF(CHandler::GetProperty(UInt32 index, PROPID propID, PROPVARIANT *val
       break;
   }
   prop.Detach(value);
+  return S_OK;
+  COM_TRY_END
+}
+
+Z7_COM7F_IMF(CHandler::SetProperties(const wchar_t * const *names, const PROPVARIANT *values, UInt32 numProps))
+{
+  COM_TRY_BEGIN
+
+  for (UInt32 i = 0; i < numProps; i++)
+  {
+    UString name = names[i];
+    name.MakeLower_Ascii();
+    if (name.IsEmpty())
+      return E_INVALIDARG;
+
+    const PROPVARIANT &prop = values[i];
+
+    if (name.IsEqualTo("cp"))
+    {
+      NNameCodePage::EMode mode;
+      UInt32 cp = CP_OEMCP;
+      RINOK(NNameCodePage::ParseCodePageProp(prop, CP_OEMCP, mode, cp))
+      _forceCodePage = false;
+      _autoCodePage = false;
+      _autoCodePage_Defined = false;
+      _autoCodePage_Value = 0;
+      _specifiedCodePage = CP_OEMCP;
+      if (mode == NNameCodePage::kAuto)
+      {
+        _autoCodePage = true;
+        DetectAutoCodePage();
+      }
+      else if (mode == NNameCodePage::kSpecified)
+      {
+        _forceCodePage = true;
+        _specifiedCodePage = cp;
+      }
+    }
+    else
+      return E_INVALIDARG;
+  }
+
   return S_OK;
   COM_TRY_END
 }
@@ -1301,6 +1397,11 @@ Z7_COM7F_IMF(CHandler::Close())
   _errorFlags = 0;
   _warningFlags = 0;
   _isArc = false;
+  _forceCodePage = false;
+  _autoCodePage = false;
+  _autoCodePage_Defined = false;
+  _specifiedCodePage = CP_OEMCP;
+  _autoCodePage_Value = 0;
   _refItems.Clear();
   _items.Clear();
   _arcs.Clear();

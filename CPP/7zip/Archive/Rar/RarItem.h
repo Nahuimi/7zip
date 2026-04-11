@@ -67,11 +67,11 @@ struct CItem
   // int BaseFileIndex;
   // bool IsAltStream;
 
-  UString GetName() const
+  UString GetName(UInt32 codePage) const
   {
     if (( /* IsAltStream || */ HasUnicodeName()) && !UnicodeName.IsEmpty())
       return UnicodeName;
-    return MultiByteToUnicodeString(Name, CP_OEMCP);
+    return MultiByteToUnicodeString(Name, codePage);
   }
 
   void Clear()
