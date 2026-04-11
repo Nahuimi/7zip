@@ -542,7 +542,6 @@ static LPCTSTR const kContextMenu = TEXT("ContextMenu");
 static LPCTSTR const kMenuIcons = TEXT("MenuIcons");
 static LPCTSTR const kElimDup = TEXT("ElimDupExtract");
 static LPCTSTR const kWriteZoneId = TEXT("WriteZoneIdExtract");
-static LPCWSTR const kNameCodePage = L"NameCodePage";
 
 void CContextMenuInfo::Save() const
 {
@@ -597,32 +596,4 @@ void CContextMenuInfo::Load()
   Key_Get_UInt32(key, kWriteZoneId, WriteZone);
 
   Flags_Def = (key.GetValue_UInt32_IfOk(kContextMenu, Flags) == ERROR_SUCCESS);
-}
-
-namespace NNameCodePageRegistry
-{
-
-void Save(const UString &value)
-{
-  CS_LOCK
-  CKey key;
-  CreateMainKey(key, kOptionsInfoKeyName);
-  if (value.IsEmpty())
-    key.DeleteValue(kNameCodePage);
-  else
-    key.SetValue(kNameCodePage, value);
-}
-
-bool Load(UString &value)
-{
-  value.Empty();
-
-  CS_LOCK
-  CKey key;
-  if (OpenMainKey(key, kOptionsInfoKeyName) != ERROR_SUCCESS)
-    return false;
-
-  return (key.QueryValue(kNameCodePage, value) == ERROR_SUCCESS && !value.IsEmpty());
-}
-
 }

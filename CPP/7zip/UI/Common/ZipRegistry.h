@@ -209,10 +209,4 @@ struct CContextMenuInfo
   void Load();
 };
 
-namespace NNameCodePageRegistry
-{
-  void Save(const UString &value);
-  bool Load(UString &value);
-}
-
 #endif

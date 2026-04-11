@@ -10,13 +10,15 @@
 #include "../../../Common/MyCom.h"
 
 #include "../../../Windows/PropVariant.h"
+#include "../../../Windows/Registry.h"
 
 #include "../../Archive/IArchive.h"
-#include "ZipRegistry.h"
 
 namespace NCodePageUtils {
 
 static const char * const kForceCodePageEnvVar = "Z7_FORCE_CODEC";
+static LPCWSTR const kCodePageOptionsRegPath = L"Software\\7-Zip\\Options";
+static LPCWSTR const kCodePageOptionsRegName = L"NameCodePage";
 
 static inline void GetCodePageSettingString(NNameCodePage::EMode mode,
     UInt32 codePage, UString &value)
@@ -42,18 +44,38 @@ static inline bool GetSavedCodePageInfo(NNameCodePage::EMode &mode, UInt32 &code
   mode = NNameCodePage::kDefault;
   codePage = 0;
 
+  #ifdef Z7_NO_REGISTRY
+  return false;
+  #else
   UString value;
-  if (!NNameCodePageRegistry::Load(value))
+  NWindows::NRegistry::CKey key;
+  if (key.Open(HKEY_CURRENT_USER, kCodePageOptionsRegPath, KEY_READ) != ERROR_SUCCESS)
+    return false;
+  if (key.QueryValue(kCodePageOptionsRegName, value) != ERROR_SUCCESS || value.IsEmpty())
     return false;
 
   return NNameCodePage::ParseCodePageName(value, mode, codePage);
+  #endif
 }
 
 static inline void SaveSavedCodePageInfo(NNameCodePage::EMode mode, UInt32 codePage)
 {
+  #ifdef Z7_NO_REGISTRY
+  (void)mode;
+  (void)codePage;
+  #else
   UString value;
   GetCodePageSettingString(mode, codePage, value);
-  NNameCodePageRegistry::Save(value);
+
+  NWindows::NRegistry::CKey key;
+  if (key.Create(HKEY_CURRENT_USER, kCodePageOptionsRegPath) != ERROR_SUCCESS)
+    return;
+
+  if (value.IsEmpty())
+    key.DeleteValue(kCodePageOptionsRegName);
+  else
+    key.SetValue(kCodePageOptionsRegName, value);
+  #endif
 }
 
 static inline bool GetForcedCodePageInfo(NNameCodePage::EMode &mode, UInt32 &codePage)
