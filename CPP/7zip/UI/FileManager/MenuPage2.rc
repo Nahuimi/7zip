@@ -1,6 +1,6 @@
 #include "../GUI/ExtractDialogRes.h"
 
-#define y 96
+#define y 110
 
 #define zoneX 100
 
@@ -15,7 +15,10 @@ BEGIN
   LTEXT    "Propagate Zone.Id stream:", IDT_SYSTEM_ZONE, m, m + 70, xc - zoneX, 8
   COMBOBOX  IDC_SYSTEM_ZONE, m + xc - zoneX, m + 70 - 2, zoneX, 50, MY_COMBO
 
-  LTEXT    "Context menu items:", IDT_SYSTEM_CONTEXT_MENU_ITEMS, m, m + 84, xc, 8
+  LTEXT    "Filename encoding:", IDT_SYSTEM_NAME_ENCODING, m, m + 84, xc - zoneX, 8
+  COMBOBOX  IDC_SYSTEM_NAME_ENCODING, m + xc - zoneX, m + 84 - 2, zoneX, 120, MY_COMBO
+
+  LTEXT    "Context menu items:", IDT_SYSTEM_CONTEXT_MENU_ITEMS, m, m + 98, xc, 8
   CONTROL  "List", IDL_SYSTEM_OPTIONS, "SysListView32",
            LVS_REPORT | LVS_SINGLESEL | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,
            m, m + y, xc, yc - y

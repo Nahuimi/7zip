@@ -3,6 +3,7 @@
 #include "StdAfx.h"
 
 #include "../Common/ZipRegistry.h"
+#include "../Common/CodePageUtils.h"
 
 #include "../../../Windows/DLL.h"
 #include "../../../Windows/ErrorMsg.h"
@@ -21,6 +22,7 @@
 #include "LangUtils.h"
 #include "MenuPage.h"
 #include "MenuPageRes.h"
+#include "resource.h"
 
 
 using namespace NWindows;
@@ -91,6 +93,108 @@ static void LoadLang_Spec(UString &s, UInt32 id, const char *eng)
   if (s.IsEmpty())
     s = eng;
   s.RemoveChar(L'&');
+}
+
+struct CNameEncodingItem
+{
+  UInt32 CodePage;
+  unsigned LangID;
+  const char *Text;
+};
+
+static const CNameEncodingItem kNameEncodingItems[] =
+{
+  { 65001, IDM_NAME_ENCODING_65001, "65001 (UTF-8)" },
+  { 1252,  IDM_NAME_ENCODING_1252,  "1252 (ANSI - Latin I)" },
+  { 437,   IDM_NAME_ENCODING_437,   "437 (OEM - United States)" },
+  { 850,   IDM_NAME_ENCODING_850,   "850 (OEM - Multilingual Latin I)" },
+  { 852,   IDM_NAME_ENCODING_852,   "852 (OEM - Latin II)" },
+  { 866,   IDM_NAME_ENCODING_866,   "866 (OEM - Russian)" },
+  { 874,   IDM_NAME_ENCODING_874,   "874 (ANSI/OEM - Thai)" },
+  { 932,   IDM_NAME_ENCODING_932,   "932 (ANSI/OEM - Japanese Shift-JIS)" },
+  { 936,   IDM_NAME_ENCODING_936,   "936 (ANSI/OEM - Simplified Chinese GBK)" },
+  { 949,   IDM_NAME_ENCODING_949,   "949 (ANSI/OEM - Korean)" },
+  { 950,   IDM_NAME_ENCODING_950,   "950 (ANSI/OEM - Traditional Chinese Big5)" },
+  { 1250,  IDM_NAME_ENCODING_1250,  "1250 (ANSI - Central Europe)" },
+  { 1251,  IDM_NAME_ENCODING_1251,  "1251 (ANSI - Cyrillic)" },
+  { 1253,  IDM_NAME_ENCODING_1253,  "1253 (ANSI - Greek)" },
+  { 1254,  IDM_NAME_ENCODING_1254,  "1254 (ANSI - Turkish)" },
+  { 1255,  IDM_NAME_ENCODING_1255,  "1255 (ANSI - Hebrew)" },
+  { 1256,  IDM_NAME_ENCODING_1256,  "1256 (ANSI - Arabic)" },
+  { 1257,  IDM_NAME_ENCODING_1257,  "1257 (ANSI - Baltic)" },
+  { 1258,  IDM_NAME_ENCODING_1258,  "1258 (ANSI/OEM - Viet Nam)" }
+};
+
+enum
+{
+  kNameEncoding_Default = 0,
+  kNameEncoding_Auto = -2
+};
+
+static void SetComboCurSel(NControl::CComboBox &combo, int index)
+{
+  if (index >= 0)
+    combo.SetCurSel(index);
+  else if (combo.GetCount() > 0)
+    combo.SetCurSel(0);
+}
+
+static void InitNameEncodingCombo(NControl::CComboBox &combo,
+    NNameCodePage::EMode mode, UInt32 codePage)
+{
+  combo.ResetContent();
+
+  int selectedIndex = -1;
+
+  UString s;
+  LoadLang_Spec(s, IDM_NAME_ENCODING_DEFAULT, "Default");
+  int index = (int)combo.AddString_SetItemData(s, (LPARAM)(Int32)kNameEncoding_Default);
+  if (mode == NNameCodePage::kDefault)
+    selectedIndex = index;
+
+  LoadLang_Spec(s, IDM_NAME_ENCODING_AUTO, "Auto Detect");
+  index = (int)combo.AddString_SetItemData(s, (LPARAM)(Int32)kNameEncoding_Auto);
+  if (mode == NNameCodePage::kAuto)
+    selectedIndex = index;
+
+  bool matched = false;
+  for (unsigned i = 0; i < Z7_ARRAY_SIZE(kNameEncodingItems); i++)
+  {
+    const CNameEncodingItem &item = kNameEncodingItems[i];
+    LoadLang_Spec(s, item.LangID, item.Text);
+    index = (int)combo.AddString_SetItemData(s, (LPARAM)(Int32)item.CodePage);
+    if (mode == NNameCodePage::kSpecified && codePage == item.CodePage)
+    {
+      selectedIndex = index;
+      matched = true;
+    }
+  }
+
+  if (mode == NNameCodePage::kSpecified && !matched)
+  {
+    wchar_t temp[16];
+    ConvertUInt32ToString(codePage, temp);
+    index = (int)combo.AddString_SetItemData(temp, (LPARAM)(Int32)codePage);
+    selectedIndex = index;
+  }
+
+  SetComboCurSel(combo, selectedIndex);
+}
+
+static void GetNameEncodingComboSelection(NControl::CComboBox &combo,
+    NNameCodePage::EMode &mode, UInt32 &codePage)
+{
+  mode = NNameCodePage::kDefault;
+  codePage = 0;
+
+  const Int32 value = (Int32)combo.GetItemData_of_CurSel();
+  if (value == kNameEncoding_Auto)
+    mode = NNameCodePage::kAuto;
+  else if (value > 0)
+  {
+    mode = NNameCodePage::kSpecified;
+    codePage = (UInt32)value;
+  }
 }
 
 
@@ -193,6 +297,14 @@ bool CMenuPage::OnInit()
 
   _listView.Attach(GetItem(IDL_SYSTEM_OPTIONS));
   _zoneCombo.Attach(GetItem(IDC_SYSTEM_ZONE));
+  _nameEncodingCombo.Attach(GetItem(IDC_SYSTEM_NAME_ENCODING));
+
+  {
+    UString s;
+    LoadLang_Spec(s, IDM_NAME_ENCODING, "Filename encoding");
+    s += ':';
+    SetItemText(IDT_SYSTEM_NAME_ENCODING, s);
+  }
 
   {
     unsigned wz = ci.WriteZone;
@@ -227,6 +339,14 @@ bool CMenuPage::OnInit()
       if (val == wz)
         _zoneCombo.SetCurSel(index);
     }
+  }
+
+  {
+    NNameCodePage::EMode mode;
+    UInt32 codePage = 0;
+    if (!NCodePageUtils::GetSavedCodePageInfo(mode, codePage))
+      mode = NNameCodePage::kDefault;
+    InitNameEncodingCombo(_nameEncodingCombo, mode, codePage);
   }
 
 
@@ -323,6 +443,7 @@ LONG CMenuPage::OnApply()
       || _menuIcons_Changed
       || _elimDup_Changed
       || _writeZone_Changed
+      || _nameEncoding_Changed
       || _flags_Changed)
   {
     CContextMenuInfo ci;
@@ -340,6 +461,15 @@ LONG CMenuPage::OnApply()
       if (zoneIndex <= 0)
         zoneIndex = -1;
       ci.WriteZone = (UInt32)(Int32)zoneIndex;
+    }
+
+    if (_nameEncoding_Changed)
+    {
+      NNameCodePage::EMode mode;
+      UInt32 codePage;
+      GetNameEncodingComboSelection(_nameEncodingCombo, mode, codePage);
+      NCodePageUtils::SaveSavedCodePageInfo(mode, codePage);
+      NCodePageUtils::SetCurrentProcessCodePageInfo(mode, codePage);
     }
 
     ci.Flags = 0;
@@ -401,6 +531,12 @@ bool CMenuPage::OnCommand(unsigned code, unsigned itemID, LPARAM param)
   if (code == CBN_SELCHANGE && itemID == IDC_SYSTEM_ZONE)
   {
     _writeZone_Changed = true;
+    Changed();
+    return true;
+  }
+  if (code == CBN_SELCHANGE && itemID == IDC_SYSTEM_NAME_ENCODING)
+  {
+    _nameEncoding_Changed = true;
     Changed();
     return true;
   }

@@ -26,6 +26,7 @@ class CMenuPage: public NWindows::NControl::CPropertyPage
   bool _menuIcons_Changed;
   bool _elimDup_Changed;
   bool _writeZone_Changed;
+  bool _nameEncoding_Changed;
   bool _flags_Changed;
 
   void Clear_MenuChanged()
@@ -34,6 +35,7 @@ class CMenuPage: public NWindows::NControl::CPropertyPage
     _menuIcons_Changed = false;
     _elimDup_Changed = false;
     _writeZone_Changed = false;
+    _nameEncoding_Changed = false;
     _flags_Changed = false;
   }
   
@@ -43,6 +45,7 @@ class CMenuPage: public NWindows::NControl::CPropertyPage
   
   NWindows::NControl::CListView _listView;
   NWindows::NControl::CComboBox _zoneCombo;
+  NWindows::NControl::CComboBox _nameEncodingCombo;
 
   virtual bool OnInit() Z7_override;
   virtual void OnNotifyHelp() Z7_override;
