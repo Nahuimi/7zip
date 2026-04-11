@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+// Modified in this fork for 7-Zip integration and compiler compatibility fixes.
+//
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "compact_enc_det.h"

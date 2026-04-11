@@ -49,6 +49,15 @@
   - 7zFM 打开压缩包时会应用该代码页
   - 如果没有在程序外部预先设置 `Z7_FORCE_CODEC`，则该设置只对当前 7zFM 进程生效
 
+## 第三方许可证
+
+本仓库为了归档条目名称自动检测，集成了 Google 的 `compact_enc_det` 库。
+
+- 许可证：Apache License 2.0
+- 源码许可证文本：[`CPP/Common/CompactEncDet/LICENSE`](CPP/Common/CompactEncDet/LICENSE)
+- 第三方说明文件：[`THIRD_PARTY_NOTICES.txt`](THIRD_PARTY_NOTICES.txt)
+- 引入的 `compact_enc_det` 源码树包含本仓库为集成和编译兼容性所做的本地修改
+
 ## GitHub Actions
 
 Windows CI 定义位于 [`.github/workflows/build-windows.yml`](.github/workflows/build-windows.yml)。
@@ -57,5 +66,5 @@ Windows CI 定义位于 [`.github/workflows/build-windows.yml`](.github/workflow
 - 工具链：Visual Studio 2022 + `nmake`
 - 目标：`x64`、`x86`
 - 产物：
-  - `7zip-windows-replacement`：保持当前 Windows 发行目录结构的替换包，适合直接替换现有 7-Zip 安装或现有打包结构中的构建产物
-  - `7zip-windows-all-products`：把所有生成的 `.exe`、`.dll`、`.sfx` 和语言文件集中打进一个 zip 包，便于检查、下载或二次分发
+  - `7zip-windows-replacement`：保持当前 Windows 发行目录结构的替换包，适合直接替换现有 7-Zip 安装或现有打包结构中的构建产物；同时会包含 `Licenses/` 目录，内含 7-Zip 许可证、`compact_enc_det` 的 Apache-2.0 许可证文本以及第三方说明文件
+  - `7zip-windows-all-products`：把所有生成的 `.exe`、`.dll`、`.sfx`、语言文件和同样的 `Licenses/` 文档一起打进一个 zip 包，便于检查、下载或二次分发

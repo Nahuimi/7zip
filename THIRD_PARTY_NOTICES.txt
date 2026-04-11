@@ -1,0 +1,34 @@
+Third-Party Notices
+===================
+
+This repository includes third-party source code from the following component:
+
+Component
+---------
+compact_enc_det
+Copyright 2016 Google Inc.
+
+Location in this repository
+---------------------------
+CPP/Common/CompactEncDet/
+
+License
+-------
+Apache License, Version 2.0
+
+The full license text for compact_enc_det is included in:
+CPP/Common/CompactEncDet/LICENSE
+
+Local modifications
+-------------------
+This fork includes local modifications related to 7-Zip integration and
+compiler compatibility fixes.
+
+Known modified upstream file in the imported compact_enc_det source tree:
+- CPP/Common/CompactEncDet/compact_enc_det.cc
+
+Repository note
+---------------
+No separate upstream NOTICE file for compact_enc_det is included in this
+repository snapshot. This notice file is provided to document the bundled
+third-party component and the license location used by this fork.

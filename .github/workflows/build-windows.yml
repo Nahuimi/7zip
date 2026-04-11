@@ -61,6 +61,8 @@ jobs:
 
             $langRoot = Join-Path $PackageRoot "Lang"
             New-Item -ItemType Directory -Force -Path $langRoot | Out-Null
+            $licenseRoot = Join-Path $PackageRoot "Licenses"
+            New-Item -ItemType Directory -Force -Path $licenseRoot | Out-Null
 
             $copyMap = @(
               @{ Source = "CPP\7zip\Bundles\Fm\$Platform\7zFM.exe"; Destination = "7zFM.exe" },
@@ -71,7 +73,10 @@ jobs:
               @{ Source = "CPP\7zip\Bundles\SFXWin\$Platform\7z.sfx"; Destination = "7z.sfx" },
               @{ Source = "CPP\7zip\Bundles\SFXCon\$Platform\7zCon.sfx"; Destination = "7zCon.sfx" },
               @{ Source = "Lang\en.ttt"; Destination = "Lang\en.ttt" },
-              @{ Source = "Lang\zh-cn.txt"; Destination = "Lang\zh-cn.txt" }
+              @{ Source = "Lang\zh-cn.txt"; Destination = "Lang\zh-cn.txt" },
+              @{ Source = "DOC\License.txt"; Destination = "Licenses\7zip-License.txt" },
+              @{ Source = "CPP\Common\CompactEncDet\LICENSE"; Destination = "Licenses\compact_enc_det-Apache-2.0.txt" },
+              @{ Source = "THIRD_PARTY_NOTICES.txt"; Destination = "Licenses\THIRD_PARTY_NOTICES.txt" }
             )
 
             if ($IncludeAltExplorer) {
@@ -142,6 +147,12 @@ jobs:
           New-Item -ItemType Directory -Force -Path $langTargetRoot | Out-Null
           Copy-Item "Lang\*.txt" $langTargetRoot -Force
           Copy-Item "Lang\en.ttt" (Join-Path $langTargetRoot "en.ttt") -Force
+
+          $licenseTargetRoot = Join-Path $fullPackageRoot "Licenses"
+          New-Item -ItemType Directory -Force -Path $licenseTargetRoot | Out-Null
+          Copy-Item "DOC\License.txt" (Join-Path $licenseTargetRoot "7zip-License.txt") -Force
+          Copy-Item "CPP\Common\CompactEncDet\LICENSE" (Join-Path $licenseTargetRoot "compact_enc_det-Apache-2.0.txt") -Force
+          Copy-Item "THIRD_PARTY_NOTICES.txt" (Join-Path $licenseTargetRoot "THIRD_PARTY_NOTICES.txt") -Force
 
           Compress-Archive -Path (Join-Path $fullPackageRoot '*') -DestinationPath $zipPath -CompressionLevel Optimal
 

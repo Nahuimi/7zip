@@ -49,6 +49,15 @@ This fork also ports the 7zFM name-encoding selector from [Autori/7zip-codepage]
   - Applies the selected code page when opening archives in 7zFM
   - Keeps the setting only for the current 7zFM process unless `Z7_FORCE_CODEC` is set outside the app
 
+## Third-Party Licenses
+
+This repository vendors Google's `compact_enc_det` library for archive entry name auto-detection.
+
+- License: Apache License 2.0
+- Source license text: [`CPP/Common/CompactEncDet/LICENSE`](CPP/Common/CompactEncDet/LICENSE)
+- Third-party notice summary: [`THIRD_PARTY_NOTICES.txt`](THIRD_PARTY_NOTICES.txt)
+- The imported `compact_enc_det` source tree contains local modifications for integration and compiler compatibility
+
 ## GitHub Actions
 
 Windows CI is defined in [`.github/workflows/build-windows.yml`](.github/workflows/build-windows.yml).
@@ -57,5 +66,5 @@ Windows CI is defined in [`.github/workflows/build-windows.yml`](.github/workflo
 - Toolchain: Visual Studio 2022 + `nmake`
 - Targets: `x64`, `x86`
 - Artifacts:
-  - `7zip-windows-replacement`: a replacement package that keeps the layout of the current Windows distribution, suitable for directly swapping built binaries into an existing 7-Zip installation or package structure
-  - `7zip-windows-all-products`: a zip archive that collects all produced `.exe`, `.dll`, `.sfx`, and language files in one place for inspection, download, or redistribution
+  - `7zip-windows-replacement`: a replacement package that keeps the layout of the current Windows distribution, suitable for directly swapping built binaries into an existing 7-Zip installation or package structure; it also includes a `Licenses/` directory with the 7-Zip license, the bundled `compact_enc_det` Apache-2.0 license text, and third-party notices
+  - `7zip-windows-all-products`: a zip archive that collects all produced `.exe`, `.dll`, `.sfx`, language files, and the same `Licenses/` documentation in one place for inspection, download, or redistribution

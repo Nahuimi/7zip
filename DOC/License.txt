@@ -11,6 +11,7 @@
     - CPP/7zip/Compress/LzfseDecoder.cpp: the "BSD 3-clause License"
     - C/ZstdDec.c: the "BSD 3-clause License"
     - C/Xxh64.c: the "BSD 2-clause License"
+    - CPP/Common/CompactEncDet/* files: the "Apache License 2.0"
     - Some files are "public domain" files, if "public domain" status is stated in source file.
     - the "GNU LGPL" for all other files. If there is no license information in 
        some source file, that file is under the "GNU LGPL".
@@ -91,6 +92,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ---
 
 
+Apache License 2.0 in this fork
+-------------------------------
+
+  The "Apache License 2.0" is used for the bundled compact_enc_det code:
+
+    CPP/Common/CompactEncDet/*
+
+  compact_enc_det is used in this fork for archive entry name encoding detection.
+  The full Apache License 2.0 text for that code is included in:
+
+    CPP/Common/CompactEncDet/LICENSE
+
+  This fork also includes local modifications to compact_enc_det sources for
+  build compatibility and integration purposes. See:
+
+    THIRD_PARTY_NOTICES.txt
 
 
 BSD 2-clause License in 7-Zip code
