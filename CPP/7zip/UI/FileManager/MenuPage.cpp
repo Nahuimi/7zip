@@ -302,7 +302,7 @@ bool CMenuPage::OnInit()
   {
     UString s;
     LoadLang_Spec(s, IDM_NAME_ENCODING, "Filename encoding");
-    s += ':';
+    s.Add_Char(':');
     SetItemText(IDT_SYSTEM_NAME_ENCODING, s);
   }
 
