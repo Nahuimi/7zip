@@ -49,54 +49,6 @@
   - 7zFM 打开压缩包时会应用该代码页
   - 如果没有在程序外部预先设置 `Z7_FORCE_CODEC`，则该设置只对当前 7zFM 进程生效
 
-## 构建
-
-### 使用 `nmake` 构建 Windows 版本
-
-开始构建前，请先打开 Visual Studio Developer Prompt，或手动执行对应的 `vcvars*.bat` 脚本。
-
-构建完整的 Windows 代码树：
-
-```bat
-cd CPP\7zip
-nmake
-```
-
-只构建 `7za.exe`：
-
-```bat
-cd CPP\7zip\Bundles\Alone
-nmake
-```
-
-### 使用 GCC / MinGW / 类 Unix 环境构建
-
-使用仓库自带的 GCC makefile 构建 `7zz`：
-
-```sh
-cd CPP/7zip/Bundles/Alone2
-make -j -f makefile.gcc
-```
-
-构建优化过的 x64 GCC 版本：
-
-```sh
-make -j -f ../../cmpl_gcc_x64.mak
-```
-
-Windows 构建产物通常位于 `o/` 或 `<PLATFORM>/` 目录下；GCC 和 Clang 构建通常位于 `b/g*` 或 `b/c*` 目录下。
-
-## 基本验证
-
-本仓库没有独立的自动化测试目录。构建完成后，可以使用下面的命令做一个简单的冒烟测试：
-
-```bat
-.\7za.exe a test.7z .\DOC
-.\7za.exe t test.7z
-```
-
-如果改动涉及压缩包解析或解压逻辑，建议额外验证打开、列表、测试、解压等路径，并使用有代表性的样例压缩包进行检查。
-
 ## GitHub Actions
 
 Windows CI 定义位于 [`.github/workflows/build-windows.yml`](.github/workflows/build-windows.yml)。
@@ -105,5 +57,5 @@ Windows CI 定义位于 [`.github/workflows/build-windows.yml`](.github/workflow
 - 工具链：Visual Studio 2022 + `nmake`
 - 目标：`x64`、`x86`
 - 产物：
-  - `7zip-windows-replacement`：当前 Windows 构建输出的替换包
-  - `7zip-windows-all-products`：包含所有收集到的 `.exe`、`.dll`、`.sfx` 产物及语言文件的 zip 包
+  - `7zip-windows-replacement`：保持当前 Windows 发行目录结构的替换包，适合直接替换现有 7-Zip 安装或现有打包结构中的构建产物
+  - `7zip-windows-all-products`：把所有生成的 `.exe`、`.dll`、`.sfx` 和语言文件集中打进一个 zip 包，便于检查、下载或二次分发

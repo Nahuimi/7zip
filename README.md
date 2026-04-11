@@ -49,54 +49,6 @@ This fork also ports the 7zFM name-encoding selector from [Autori/7zip-codepage]
   - Applies the selected code page when opening archives in 7zFM
   - Keeps the setting only for the current 7zFM process unless `Z7_FORCE_CODEC` is set outside the app
 
-## Build
-
-### Windows with `nmake`
-
-Open a Visual Studio Developer Prompt first, or run the matching `vcvars*.bat` script before building.
-
-Build the main Windows tree:
-
-```bat
-cd CPP\7zip
-nmake
-```
-
-Build only `7za.exe`:
-
-```bat
-cd CPP\7zip\Bundles\Alone
-nmake
-```
-
-### GCC / MinGW / Unix-like builds
-
-Build `7zz` with the bundled GCC makefile:
-
-```sh
-cd CPP/7zip/Bundles/Alone2
-make -j -f makefile.gcc
-```
-
-Build the optimized x64 GCC variant:
-
-```sh
-make -j -f ../../cmpl_gcc_x64.mak
-```
-
-Windows outputs usually land under `o/` or `<PLATFORM>/`. GCC and Clang builds typically use `b/g*` or `b/c*`.
-
-## Verification
-
-This repository does not include a separate automated test directory. After building, a simple smoke test can be done with:
-
-```bat
-.\7za.exe a test.7z .\DOC
-.\7za.exe t test.7z
-```
-
-For parser or extractor changes, verify open, list, test, and extract paths with representative sample archives.
-
 ## GitHub Actions
 
 Windows CI is defined in [`.github/workflows/build-windows.yml`](.github/workflows/build-windows.yml).
@@ -105,5 +57,5 @@ Windows CI is defined in [`.github/workflows/build-windows.yml`](.github/workflo
 - Toolchain: Visual Studio 2022 + `nmake`
 - Targets: `x64`, `x86`
 - Artifacts:
-  - `7zip-windows-replacement`: replacement package for the current Windows build outputs
-  - `7zip-windows-all-products`: zip archive with all collected `.exe`, `.dll`, `.sfx` products and language files
+  - `7zip-windows-replacement`: a replacement package that keeps the layout of the current Windows distribution, suitable for directly swapping built binaries into an existing 7-Zip installation or package structure
+  - `7zip-windows-all-products`: a zip archive that collects all produced `.exe`, `.dll`, `.sfx`, and language files in one place for inspection, download, or redistribution
