@@ -4,6 +4,8 @@ Thumbs.db
 Desktop.ini
 .vscode/
 .idea/
+
+# Local agent instructions
 AGENTS.md
 CLAUDE.md
 
@@ -17,11 +19,11 @@ CLAUDE.md
 *.orig
 *.rej
 
-# Archive/test artifacts that should not be committed
+# Local archive smoke-test artifacts
 test.7z
-*.zip
+test.zip
 
-# Build outputs
+# Compiler and linker outputs
 *.obj
 *.o
 *.a
@@ -39,6 +41,7 @@ test.7z
 *.ncb
 *.aps
 
+# Built binaries
 *.exe
 *.dll
 *.so
@@ -46,13 +49,16 @@ test.7z
 *.sfx
 
 # Common output directories created by 7-Zip builds
-/**/o/
-/**/o_*
-/**/b/
-/**/b64/
-/**/b32/
-/**/x64/
-/**/x86/
-/**/arm64/
-/**/Release/
-/**/Debug/
+CPP/7zip/**/o/
+CPP/7zip/**/o_*/
+CPP/7zip/**/b/
+CPP/7zip/**/b32/
+CPP/7zip/**/b64/
+CPP/7zip/Bundles/*/x86/
+CPP/7zip/Bundles/*/x64/
+CPP/7zip/Bundles/*/arm64/
+CPP/7zip/UI/*/x86/
+CPP/7zip/UI/*/x64/
+CPP/7zip/UI/*/arm64/
+CPP/7zip/**/Release/
+CPP/7zip/**/Debug/
