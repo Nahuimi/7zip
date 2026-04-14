@@ -84,6 +84,7 @@ WIN_CTRL_OBJS = \
 UI_COMMON_OBJS = \
   $O\ArchiveCommandLine.obj \
   $O\ArchiveExtractCallback.obj \
+  $O\ArchiveName.obj \
   $O\ArchiveOpenCallback.obj \
   $O\Bench.obj \
   $O\DefaultName.obj \
