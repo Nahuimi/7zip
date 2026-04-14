@@ -32,3 +32,21 @@ Repository note
 No separate upstream NOTICE file for compact_enc_det is included in this
 repository snapshot. This notice file is provided to document the bundled
 third-party component and the license location used by this fork.
+
+
+Additional component
+--------------------
+SQLite
+Copyright held by the authors listed by the SQLite project.
+
+Location in this repository
+---------------------------
+C/sqlite3.c
+C/sqlite3.h
+C/sqlite3ext.h
+
+License / notice
+----------------
+SQLite is distributed as public-domain software by the SQLite project.
+The amalgamation source used in this repository was imported from the
+official SQLite download site.

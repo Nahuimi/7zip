@@ -107,6 +107,17 @@ For example, to compile 7za.exe, use the following command sequence:
   nmake
 
 
+Fork-specific Windows additions
+-------------------------------
+
+This fork adds a bundled password plugin DLL and SQLite-backed
+password-book support for Windows builds.
+
+See:
+
+  DOC\PasswordPlugin.txt
+
+
 Compiling 7-Zip for Unix/Linux
 ------------------------------
 

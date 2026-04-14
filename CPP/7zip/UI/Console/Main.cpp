@@ -159,6 +159,7 @@ static const char * const kHelpString =
     "  -bt : show execution time statistics\n"
     "  -i[r[-|0]][m[-|2]][w[-]]{@listfile|!wildcard} : Include filenames\n"
     "  -m{Parameters} : set compression Method\n"
+    "    -mcp={auto|UTF-8|WIN|DOS|{id}} : set name code page for supported archive types\n"
     "    -mmt[N] : set number of CPU threads\n"
     "    -mx[N] : set compression level: -mx1 (fastest) ... -mx9 (ultra)\n"
     "  -o{Directory} : set Output directory\n"
