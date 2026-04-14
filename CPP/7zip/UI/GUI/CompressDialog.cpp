@@ -58,6 +58,7 @@ static const UInt32 kLangIDs[] =
   IDB_COMPRESS_OPTIONS, // IDS_OPTIONS
 
   IDG_COMPRESS_OPTIONS,
+  IDX_COMPRESS_SEPARATE,
   IDX_COMPRESS_SFX,
   IDX_COMPRESS_SHARED,
   IDX_COMPRESS_DEL,
@@ -522,6 +523,7 @@ bool CCompressDialog::OnInit()
   }
 
   CheckButton(IDX_COMPRESS_SFX, Info.SFXMode);
+  CheckButton(IDX_COMPRESS_SEPARATE, Info.SeparateMode);
 
   {
     UString fileName;
@@ -1171,6 +1173,7 @@ void CCompressDialog::OnOK()
   Info.EncryptionMethod = GetEncryptionMethodSpec();
   Info.FormatIndex = (int)GetFormatIndex();
   Info.SFXMode = IsSFX();
+  Info.SeparateMode = IsButtonCheckedBool(IDX_COMPRESS_SEPARATE);
   Info.OpenShareForWrite = IsButtonCheckedBool(IDX_COMPRESS_SHARED);
   Info.DeleteAfterCompressing = IsButtonCheckedBool(IDX_COMPRESS_DEL);
 

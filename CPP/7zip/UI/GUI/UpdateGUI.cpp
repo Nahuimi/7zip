@@ -11,6 +11,7 @@
 #include "../../../Windows/FileName.h"
 #include "../../../Windows/Thread.h"
 
+#include "../Common/ArchiveName.h"
 #include "../Common/WorkDir.h"
 
 #include "../Explorer/MyMessages.h"
@@ -35,9 +36,61 @@ extern void AddMessageToString(UString &dest, const UString &src);
 
 UString HResultToMessage(HRESULT errorCode);
 
+static bool ArePathsEqual(const UString &s1, const UString &s2)
+{
+  return CompareFileNames(s1, s2) == 0;
+}
+
+static UString GetFullPathOrOriginal(const UString &path)
+{
+  FString fullPath;
+  if (MyGetFullPathName(us2fs(path), fullPath))
+    return fs2us(fullPath);
+  return path;
+}
+
+static bool FindPath_In_Vector(const UStringVector &paths, const UString &path)
+{
+  FOR_VECTOR (i, paths)
+    if (ArePathsEqual(paths[i], path))
+      return true;
+  return false;
+}
+
+static UString GetGeneratedArchiveMainPath(const CArchivePath &archivePath,
+    const CRecordVector<UInt64> &volumeSizes)
+{
+  if (!volumeSizes.IsEmpty())
+  {
+    UString path = archivePath.GetFinalVolPath();
+    path += ".001";
+    return path;
+  }
+  return archivePath.GetFinalPath();
+}
+
+static UString GetSeparateArchiveName(const UString &path)
+{
+  UStringVector paths;
+  paths.Add(path);
+
+  UString baseName;
+  NFind::CFileInfo fileInfo;
+  const NFind::CFileInfo *fi = NULL;
+  if (fileInfo.Find(us2fs(path)))
+    fi = &fileInfo;
+  return CreateArchiveName(paths,
+      false, // isHash
+      fi,
+      baseName);
+}
+
 class CThreadUpdating: public CProgressThreadVirt
 {
   HRESULT ProcessVirt() Z7_override;
+  HRESULT RunUpdate(NWildcard::CCensor &censor, CUpdateOptions &options,
+      const UString &cmdArcPath2, bool needSetPath2);
+  HRESULT ProcessSeparateArchives();
 public:
   CCodecs *codecs;
   const CObjectVector<COpenType> *formatIndices;
@@ -48,17 +101,127 @@ public:
   bool needSetPath;
 };
  
-HRESULT CThreadUpdating::ProcessVirt()
+HRESULT CThreadUpdating::RunUpdate(NWildcard::CCensor &censor, CUpdateOptions &options,
+    const UString &cmdArcPath2, bool needSetPath2)
 {
   CUpdateErrorInfo ei;
-  HRESULT res = UpdateArchive(codecs, *formatIndices, *cmdArcPath,
-      *WildcardCensor, *Options,
-      ei, UpdateCallbackGUI, UpdateCallbackGUI, needSetPath);
+  HRESULT res = UpdateArchive(codecs, *formatIndices, cmdArcPath2,
+      censor, options,
+      ei, UpdateCallbackGUI, UpdateCallbackGUI, needSetPath2);
   FinalMessage.ErrorMessage.Message = ei.Message.Ptr();
   ErrorPaths = ei.FileNames;
   if (res != S_OK)
     return res;
   return HRESULT_FROM_WIN32(ei.SystemError);
+}
+
+HRESULT CThreadUpdating::ProcessSeparateArchives()
+{
+  CRecordVector<unsigned> includeIndices;
+  UStringVector sourcePaths;
+  FOR_VECTOR (i, WildcardCensor->CensorPaths)
+  {
+    const NWildcard::CCensorPath &cp = WildcardCensor->CensorPaths[i];
+    if (!cp.Include)
+      continue;
+    includeIndices.Add(i);
+    sourcePaths.Add(GetFullPathOrOriginal(cp.Path));
+  }
+
+  if (includeIndices.Size() <= 1)
+    return RunUpdate(*WildcardCensor, *Options, *cmdArcPath, needSetPath);
+
+  CUpdateOptions baseOptions = *Options;
+  if (needSetPath)
+  {
+    if (!baseOptions.InitFormatIndex(codecs, *formatIndices, *cmdArcPath) ||
+        !baseOptions.SetArcPath(codecs, *cmdArcPath))
+      return E_NOTIMPL;
+  }
+
+  UStringVector generatedMainPaths;
+  UStringVector generatedWildcards;
+  UStringVector separateNames;
+
+  FOR_VECTOR (i, includeIndices)
+  {
+    const NWildcard::CCensorPath &cp = WildcardCensor->CensorPaths[includeIndices[i]];
+    const UString baseName = GetSeparateArchiveName(cp.Path);
+
+    UString name = baseName;
+    for (UInt32 index = 2;; index++)
+    {
+      CArchivePath archivePath = baseOptions.ArchivePath;
+      archivePath.Name = name;
+      const UString mainPath = GetFullPathOrOriginal(
+          GetGeneratedArchiveMainPath(archivePath, baseOptions.VolumesSizes));
+      if (!FindPath_In_Vector(generatedMainPaths, mainPath)
+          && !FindPath_In_Vector(sourcePaths, mainPath))
+      {
+        separateNames.Add(name);
+        generatedMainPaths.Add(mainPath);
+        if (!baseOptions.VolumesSizes.IsEmpty())
+        {
+          UString wildcardPath = GetFullPathOrOriginal(archivePath.GetFinalVolPath());
+          wildcardPath += ".*";
+          generatedWildcards.Add(wildcardPath);
+        }
+        break;
+      }
+      name = baseName;
+      name.Add_Char('_');
+      name.Add_UInt32(index);
+    }
+  }
+
+  FOR_VECTOR (i, includeIndices)
+  {
+    CUpdateOptions options = baseOptions;
+    options.SeparateMode = false;
+    options.ArchivePath.Name = separateNames[i];
+
+    NWildcard::CCensor censor;
+    censor.ExcludeDirItems = WildcardCensor->ExcludeDirItems;
+    censor.ExcludeFileItems = WildcardCensor->ExcludeFileItems;
+
+    const NWildcard::CCensorPath &includeCp = WildcardCensor->CensorPaths[includeIndices[i]];
+    censor.AddPreItem(true, includeCp.Path, includeCp.Props);
+
+    FOR_VECTOR (j, WildcardCensor->CensorPaths)
+    {
+      const NWildcard::CCensorPath &cp = WildcardCensor->CensorPaths[j];
+      if (!cp.Include)
+        censor.AddPreItem(false, cp.Path, cp.Props);
+    }
+
+    if (baseOptions.VolumesSizes.IsEmpty())
+    {
+      NWildcard::CCensorPathProps props;
+      props.WildcardMatching = false;
+      FOR_VECTOR (j, generatedMainPaths)
+        censor.AddPreItem(false, generatedMainPaths[j], props);
+    }
+    else
+    {
+      NWildcard::CCensorPathProps props;
+      FOR_VECTOR (j, generatedWildcards)
+        censor.AddPreItem(false, generatedWildcards[j], props);
+    }
+
+    const UString cmdArcPath2 = options.ArchivePath.GetFinalPath();
+    HRESULT res = RunUpdate(censor, options, cmdArcPath2, false);
+    if (res != S_OK)
+      return res;
+  }
+
+  return S_OK;
+}
+
+HRESULT CThreadUpdating::ProcessVirt()
+{
+  if (Options->SeparateMode)
+    return ProcessSeparateArchives();
+  return RunUpdate(*WildcardCensor, *Options, *cmdArcPath, needSetPath);
 }
 
 
@@ -426,6 +589,7 @@ static HRESULT ShowDialog(
     
   // di.CurrentDirPrefix = currentDirPrefix;
   di.SFXMode = options.SfxMode;
+  di.SeparateMode = options.SeparateMode;
   di.OpenShareForWrite = options.OpenShareForWrite;
   di.DeleteAfterCompressing = options.DeleteAfterCompressing;
 
@@ -509,10 +673,11 @@ static HRESULT ShowDialog(
   SetOutProperties(options.MethodMode.Properties, di,
       is7z,
       !methodOverride); // setMethod
-  
+
   options.OpenShareForWrite = di.OpenShareForWrite;
   ParseAndAddPropertires(options.MethodMode.Properties, optionStrings);
 
+  options.SeparateMode = di.SeparateMode;
   if (di.SFXMode)
     options.SfxMode = true;
   options.MethodMode.Type = COpenType();

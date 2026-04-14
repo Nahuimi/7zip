@@ -381,6 +381,7 @@ Encrypt file &names
 Memory usage for Compressing:
 Memory usage for Decompressing:
 Delete files after compression
+Create separate archive for each file/folder
 4040
 Store symbolic links
 Store hard links

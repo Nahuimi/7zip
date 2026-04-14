@@ -53,6 +53,7 @@ namespace NCompressDialog
     UString EncryptionMethod;
 
     bool SFXMode;
+    bool SeparateMode;
     bool OpenShareForWrite;
     bool DeleteAfterCompressing;
     
@@ -86,6 +87,7 @@ namespace NCompressDialog
         UpdateMode(NCompressDialog::NUpdateMode::kAdd),
         PathMode(NWildcard::k_RelatPath),
         SFXMode(false),
+        SeparateMode(false),
         OpenShareForWrite(false),
         DeleteAfterCompressing(false),
         FormatIndex(-1)

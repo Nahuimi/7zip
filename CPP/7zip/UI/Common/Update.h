@@ -81,6 +81,7 @@ struct CUpdateOptions
 {
   bool UpdateArchiveItself;
   bool SfxMode;
+  bool SeparateMode;
 
   bool PreserveATime;
   bool OpenShareForWrite;
@@ -127,6 +128,7 @@ struct CUpdateOptions
   CUpdateOptions():
     UpdateArchiveItself(true),
     SfxMode(false),
+    SeparateMode(false),
 
     PreserveATime(false),
     OpenShareForWrite(false),

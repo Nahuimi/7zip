@@ -2,7 +2,7 @@
 #include "../../GuiCommon.rc"
 
 #define xc 400
-#define yc 320
+#define yc 336
 
 #undef gSize
 #undef gSpace
@@ -44,7 +44,7 @@
 #define GROUP_Y_SIZE 8
 #define GROUP_Y_SIZE_ENCRYPT 8
 #else
-#define GROUP_Y_SIZE 64
+#define GROUP_Y_SIZE 80
 #define GROUP_Y_SIZE_ENCRYPT 128
 #endif
 
@@ -118,12 +118,14 @@ BEGIN
 
   GROUPBOX  "Options", IDG_COMPRESS_OPTIONS, g4x, yOpt, g4xs, GROUP_Y_SIZE
 
-  CONTROL   "Create SF&X archive", IDX_COMPRESS_SFX, MY_CHECKBOX,
+  CONTROL   "Separate archive for each file/folder", IDX_COMPRESS_SEPARATE, MY_CHECKBOX,
             g4x2, yOpt + 14, g4xs2, 10
-  CONTROL   "Compress shared files", IDX_COMPRESS_SHARED, MY_CHECKBOX,
+  CONTROL   "Create SF&X archive", IDX_COMPRESS_SFX, MY_CHECKBOX,
             g4x2, yOpt + 30, g4xs2, 10
-  CONTROL   "Delete files after compression", IDX_COMPRESS_DEL, MY_CHECKBOX,
+  CONTROL   "Compress shared files", IDX_COMPRESS_SHARED, MY_CHECKBOX,
             g4x2, yOpt + 46, g4xs2, 10
+  CONTROL   "Delete files after compression", IDX_COMPRESS_DEL, MY_CHECKBOX,
+            g4x2, yOpt + 62, g4xs2, 10
 
 
   GROUPBOX  "Encryption", IDG_COMPRESS_ENCRYPTION, g4x, yPsw, g4xs, GROUP_Y_SIZE_ENCRYPT
@@ -181,16 +183,17 @@ BEGIN
   EDITTEXT  IDE_COMPRESS_PARAMETERS, m + 128, 58, 24, 13, ES_AUTOHSCROLL
 
   COMBOBOX  IDC_COMPRESS_UPDATE_MODE, m, 76, 88, 80, MY_COMBO
-  CONTROL   "SF&X", IDX_COMPRESS_SFX, MY_CHECKBOX, m + 92, 77, 60, 10
+  CONTROL   "Separate archive for each file/folder", IDX_COMPRESS_SEPARATE, MY_CHECKBOX, m, 77, xc, 10
 
-  CONTROL   "Compress shared files", IDX_COMPRESS_SHARED, MY_CHECKBOX, m, 94, xc, 10
+  CONTROL   "SF&X", IDX_COMPRESS_SFX, MY_CHECKBOX, m + 92, 89, 60, 10
+  CONTROL   "Compress shared files", IDX_COMPRESS_SHARED, MY_CHECKBOX, m, 104, xc, 10
   
-  LTEXT     "Enter &password:", IDT_PASSWORD_ENTER, m, 112, 60, 8
-  EDITTEXT  IDE_COMPRESS_PASSWORD1, m + 60, 110, 44, 13, ES_PASSWORD | ES_AUTOHSCROLL
-  CONTROL   "Show Password", IDX_PASSWORD_SHOW, MY_CHECKBOX, m + 108, 112, 44, 10
+  LTEXT     "Enter &password:", IDT_PASSWORD_ENTER, m, 122, 60, 8
+  EDITTEXT  IDE_COMPRESS_PASSWORD1, m + 60, 120, 44, 13, ES_PASSWORD | ES_AUTOHSCROLL
+  CONTROL   "Show Password", IDX_PASSWORD_SHOW, MY_CHECKBOX, m + 108, 122, 44, 10
 
-  COMBOBOX  IDC_COMPRESS_ENCRYPTION_METHOD, m, 128, 48, 198, MY_COMBO
-  CONTROL   "Encrypt file &names", IDX_COMPRESS_ENCRYPT_FILE_NAMES, MY_CHECKBOX, m + 52, 130, 100, 10
+  COMBOBOX  IDC_COMPRESS_ENCRYPTION_METHOD, m, 138, 48, 198, MY_COMBO
+  CONTROL   "Encrypt file &names", IDX_COMPRESS_ENCRYPT_FILE_NAMES, MY_CHECKBOX, m + 52, 140, 100, 10
   
   OK_CANCEL
 END
