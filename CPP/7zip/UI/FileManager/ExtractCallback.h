@@ -293,7 +293,9 @@ public:
   UString Password;
 #endif
 #if !defined(Z7_SFX) && !defined(Z7_NO_CRYPTO)
-  bool PasswordBook_ManualPasswordForNextArchive;
+  bool _defaultPasswordInitialized;
+  bool _defaultPasswordIsDefined;
+  UString _defaultPassword;
   NPasswordBook::CState _passwordBook;
 #endif
 
@@ -326,7 +328,8 @@ public:
     , _hashCalc(NULL)
 #endif
 #if !defined(Z7_SFX) && !defined(Z7_NO_CRYPTO)
-    , PasswordBook_ManualPasswordForNextArchive(false)
+    , _defaultPasswordInitialized(false)
+    , _defaultPasswordIsDefined(false)
 #endif
     {}
    
@@ -352,10 +355,6 @@ public:
   #endif
 
   bool IsOK() const { return NumArchiveErrors == 0 && !ThereAreMessageErrors; }
-#if !defined(Z7_SFX) && !defined(Z7_NO_CRYPTO)
-  void NoteManualPasswordForNextArchive()
-    { PasswordBook_ManualPasswordForNextArchive = true; }
-#endif
 };
 
 #endif

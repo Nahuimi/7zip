@@ -45,7 +45,9 @@ CExtractCallbackImp::~CExtractCallbackImp() {}
 void CExtractCallbackImp::Init()
 {
 #if !defined(Z7_SFX) && !defined(Z7_NO_CRYPTO)
-  PasswordBook_ManualPasswordForNextArchive = false;
+  _defaultPasswordInitialized = false;
+  _defaultPasswordIsDefined = false;
+  _defaultPassword.Empty();
 #endif
   LangString(IDS_PROGRESS_EXTRACTING, _lang_Extracting);
   LangString(IDS_PROGRESS_TESTING, _lang_Testing);
@@ -431,12 +433,16 @@ HRESULT CExtractCallbackImp::BeforeOpen(const wchar_t *name, bool /* testMode */
   _currentArchivePath = name;
   _needWriteArchivePath = true;
 #if !defined(Z7_SFX) && !defined(Z7_NO_CRYPTO)
-  _passwordBook.BeginArchive(name);
-  if (PasswordBook_ManualPasswordForNextArchive && PasswordIsDefined)
+  if (!_defaultPasswordInitialized)
   {
-    _passwordBook.NoteManualPassword();
-    PasswordBook_ManualPasswordForNextArchive = false;
+    _defaultPasswordInitialized = true;
+    _defaultPasswordIsDefined = PasswordIsDefined;
+    _defaultPassword = Password;
   }
+  PasswordIsDefined = _defaultPasswordIsDefined;
+  Password = _defaultPassword;
+  PasswordWasAsked = false;
+  _passwordBook.BeginArchive(name);
 #endif
   #ifndef Z7_SFX
   RINOK(ProgressDialog->Sync.CheckStop())
@@ -727,17 +733,23 @@ Z7_COM7F_IMF(CExtractCallbackImp::CryptoGetTextPassword(BSTR *password))
 {
   PasswordWasAsked = true;
 #if !defined(Z7_SFX) && !defined(Z7_NO_CRYPTO)
-  if (!PasswordIsDefined)
+  UString passwordFromBook;
+  if (_passwordBook.TryGetPassword(passwordFromBook))
   {
-    UString passwordFromBook;
-    if (_passwordBook.TryGetPassword(passwordFromBook))
-    {
-      Password = passwordFromBook;
-      PasswordIsDefined = true;
-    }
+    Password = passwordFromBook;
+    PasswordIsDefined = true;
   }
 #endif
-  if (!PasswordIsDefined)
+  if (PasswordIsDefined)
+  {
+#if !defined(Z7_SFX) && !defined(Z7_NO_CRYPTO)
+    if (!passwordFromBook.IsEmpty())
+      return StringToBstr(Password, password);
+    _passwordBook.NoteManualPassword();
+#endif
+    return StringToBstr(Password, password);
+  }
+  else
   {
     CPasswordDialog dialog;
     #ifndef Z7_SFX
