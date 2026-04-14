@@ -182,7 +182,9 @@ HRESULT ExtractGUI(
     HWND hwndParent)
 {
   messageWasDisplayed = false;
+#if !defined(Z7_SFX) && !defined(Z7_NO_CRYPTO)
   bool manualPasswordFromDialog = false;
+#endif
 
   CThreadExtracting extracter;
   /*
@@ -245,8 +247,10 @@ HRESULT ExtractGUI(
       options.NtOptions.NtSecurity = dialog.NtSecurity;
       extractCallback->Password = dialog.Password;
       extractCallback->PasswordIsDefined = !dialog.Password.IsEmpty();
+#if !defined(Z7_SFX) && !defined(Z7_NO_CRYPTO)
       manualPasswordFromDialog = extractCallback->PasswordIsDefined;
-      #endif
+#endif
+#endif
     }
     if (!MyGetFullPathName(outputDir, options.OutputDir))
     {
@@ -280,8 +284,10 @@ HRESULT ExtractGUI(
   extracter.ExtractCallbackSpec->ProgressDialog = &extracter;
   extracter.FolderArchiveExtractCallback = extractCallback;
   extracter.ExtractCallbackSpec->Init();
+#if !defined(Z7_SFX) && !defined(Z7_NO_CRYPTO)
   if (manualPasswordFromDialog)
     extractCallback->NoteManualPasswordForNextArchive();
+#endif
 
   extracter.CompressingMode = false;
 
