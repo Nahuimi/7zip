@@ -546,7 +546,7 @@ Archive unpacking was skipped.
 7830
 7-Zip Password Book
 Records: {0}
-Invalid lines ignored: {0}
+Invalid entries ignored: {0}
 New entries: {0}
 Updated entries: {0}
 Invalid entries: {0}

@@ -4,6 +4,7 @@ DIRS = \
   Explorer\~ \
   Far\~ \
   FileManager\~ \
+  PasswordPlugin\~ \
   GUI\~ \
 
 all: $(DIRS)

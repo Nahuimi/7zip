@@ -295,7 +295,7 @@ BEGIN
 
   IDS_PASSWORD_BOOK_FILTER           "7-Zip Password Book"
   IDS_PASSWORD_BOOK_RECORDS          "Records: {0}"
-  IDS_PASSWORD_BOOK_INVALID_IGNORED  "Invalid lines ignored: {0}"
+  IDS_PASSWORD_BOOK_INVALID_IGNORED  "Invalid entries ignored: {0}"
   IDS_PASSWORD_BOOK_IMPORTED_NEW     "New entries: {0}"
   IDS_PASSWORD_BOOK_IMPORTED_UPDATED "Updated entries: {0}"
   IDS_PASSWORD_BOOK_IMPORTED_INVALID "Invalid entries: {0}"

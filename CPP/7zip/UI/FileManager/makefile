@@ -105,7 +105,15 @@ AR_COMMON_OBJS = \
 C_OBJS = $(C_OBJS) \
   $O\Alloc.obj \
   $O\CpuArch.obj \
+  $O\Md5.obj \
   $O\Threads.obj \
 
 !include "../../Sort.mak"
 !include "../../7zip.mak"
+
+PLUGIN_DIRS = ..\PasswordPlugin\~
+
+all: $(PLUGIN_DIRS)
+
+$(PLUGIN_DIRS):
+!include "../../SubBuild.mak"

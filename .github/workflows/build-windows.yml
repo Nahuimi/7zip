@@ -65,10 +65,11 @@ jobs:
             New-Item -ItemType Directory -Force -Path $licenseRoot | Out-Null
 
             $copyMap = @(
-              @{ Source = "CPP\7zip\Bundles\Fm\$Platform\7zFM.exe"; Destination = "7zFM.exe" },
+              @{ Source = "CPP\7zip\UI\FileManager\$Platform\7zFM.exe"; Destination = "7zFM.exe" },
               @{ Source = "CPP\7zip\UI\GUI\$Platform\7zG.exe"; Destination = "7zG.exe" },
               @{ Source = "CPP\7zip\UI\Console\$Platform\7z.exe"; Destination = "7z.exe" },
               @{ Source = "CPP\7zip\Bundles\Format7zF\$Platform\7z.dll"; Destination = "7z.dll" },
+              @{ Source = "CPP\7zip\UI\PasswordPlugin\$Platform\7zPasswordPlugins.dll"; Destination = "7zPasswordPlugins.dll" },
               @{ Source = "CPP\7zip\UI\Explorer\$Platform\7-zip.dll"; Destination = "7-zip.dll" },
               @{ Source = "CPP\7zip\Bundles\SFXWin\$Platform\7z.sfx"; Destination = "7z.sfx" },
               @{ Source = "CPP\7zip\Bundles\SFXCon\$Platform\7zCon.sfx"; Destination = "7zCon.sfx" },
