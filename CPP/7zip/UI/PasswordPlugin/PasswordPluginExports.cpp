@@ -131,17 +131,17 @@ HRESULT WINAPI Z7PasswordPlugin_LookupPassword(
   if (!dbPath || !md5)
     return E_INVALIDARG;
 
-  CDatabase db;
   UString error;
-  if (!db.Load(us2fs(dbPath), TRUE, NULL, error))
-  {
-    SetBstrResult(error, errorMessage);
-    return E_FAIL;
-  }
-
   UString result;
-  if (!db.FindPassword(AString(md5), result))
+  if (!LookupPassword_Direct(us2fs(dbPath), AString(md5), result, error))
+  {
+    if (!error.IsEmpty())
+    {
+      SetBstrResult(error, errorMessage);
+      return E_FAIL;
+    }
     return S_FALSE;
+  }
 
   return SetBstrResult(result, password);
 }
@@ -157,11 +157,8 @@ HRESULT WINAPI Z7PasswordPlugin_StorePassword(
   if (!dbPath || !md5 || !password)
     return E_INVALIDARG;
 
-  CDatabase db;
   UString error;
-  db.Load(us2fs(dbPath), TRUE, NULL, error);
-  db.SetPassword(AString(md5), UString(password));
-  if (!db.Save(us2fs(dbPath), error))
+  if (!StorePassword_Direct(us2fs(dbPath), AString(md5), UString(password), error))
   {
     SetBstrResult(error, errorMessage);
     return E_FAIL;

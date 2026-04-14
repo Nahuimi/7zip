@@ -27,8 +27,22 @@ namespace NPasswordBook {
 static LPCTSTR const kPasswordBookRegPath =
     TEXT("Software") TEXT(STRING_PATH_SEPARATOR) TEXT("7-Zip");
 static LPCTSTR const kPasswordBookEnabled = TEXT("UsePasswordBook");
-static const unsigned kPasswordBookMaxSize = 1 << 20;
 static const char kSqliteHeader[] = "SQLite format 3";
+static const unsigned kPasswordBookSchemaVersion = 2;
+
+static const char * const kSql_CreateEntriesTable =
+    "CREATE TABLE IF NOT EXISTS password_entries ("
+    "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+    "archive_md5 TEXT NOT NULL,"
+    "password TEXT NOT NULL,"
+    "source INTEGER NOT NULL DEFAULT 0,"
+    "created_utc TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+    "updated_utc TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP"
+    ");";
+
+static const char * const kSql_CreateEntriesIndex =
+    "CREATE UNIQUE INDEX IF NOT EXISTS ux_password_entries_archive_md5 "
+    "ON password_entries(archive_md5);";
 
 enum EDbKind
 {
@@ -174,6 +188,19 @@ static bool SqliteExec(sqlite3 *db, const char *sql, const char *message, const 
   return false;
 }
 
+static bool EnsureSchema(sqlite3 *db, const FString &path, UString &errorMessage)
+{
+  if (!SqliteExec(db, kSql_CreateEntriesTable, "Cannot initialize password book database", &path, errorMessage))
+    return false;
+  if (!SqliteExec(db, kSql_CreateEntriesIndex, "Cannot initialize password book database", &path, errorMessage))
+    return false;
+
+  AString pragmaSql("PRAGMA user_version=");
+  pragmaSql.Add_UInt32(kPasswordBookSchemaVersion);
+  pragmaSql += ';';
+  return SqliteExec(db, pragmaSql, "Cannot initialize password book database", &path, errorMessage);
+}
+
 static bool OpenDatabase(const FString &path, bool createSchema, sqlite3 **db, UString &errorMessage)
 {
   *db = NULL;
@@ -194,14 +221,7 @@ static bool OpenDatabase(const FString &path, bool createSchema, sqlite3 **db, U
 
   if (createSchema)
   {
-    if (!SqliteExec(*db,
-        "CREATE TABLE IF NOT EXISTS password_book ("
-        "md5 TEXT NOT NULL PRIMARY KEY,"
-        "password TEXT NOT NULL"
-        ");",
-        "Cannot initialize password book database",
-        &path,
-        errorMessage))
+    if (!EnsureSchema(*db, path, errorMessage))
     {
       sqlite3_close(*db);
       *db = NULL;
@@ -310,7 +330,7 @@ bool CDatabase::Load(const FString &path, bool allowMissing, CLoadStats *stats, 
   sqlite3_stmt *stmt = NULL;
   const int rc = sqlite3_prepare_v2(
       db,
-      "SELECT md5, password FROM password_book ORDER BY md5 COLLATE NOCASE;",
+      "SELECT archive_md5, password FROM password_entries ORDER BY archive_md5 COLLATE NOCASE;",
       -1,
       &stmt,
       NULL);
@@ -378,14 +398,14 @@ bool CDatabase::Save(const FString &path, UString &errorMessage) const
   bool ok = SqliteExec(db, "BEGIN IMMEDIATE;", "Cannot update password book database", &path, errorMessage);
 
   if (ok)
-    ok = SqliteExec(db, "DELETE FROM password_book;", "Cannot update password book database", &path, errorMessage);
+    ok = SqliteExec(db, "DELETE FROM password_entries;", "Cannot update password book database", &path, errorMessage);
 
   sqlite3_stmt *stmt = NULL;
   if (ok)
   {
     const int rc = sqlite3_prepare_v2(
         db,
-        "INSERT INTO password_book(md5, password) VALUES(?1, ?2);",
+        "INSERT INTO password_entries(archive_md5, password, source) VALUES(?1, ?2, 0);",
         -1,
         &stmt,
         NULL);
@@ -471,26 +491,14 @@ bool EnsureDatabaseExists(UString &errorMessage)
 bool LookupPassword(const AString &md5, UString &password)
 {
   password.Empty();
-
-  CDatabase db;
   UString errorMessage;
-  if (!db.Load(GetDatabasePath(), true, NULL, errorMessage))
-    return false;
-
-  AString normalizedMd5;
-  if (!NormalizeMd5(md5, normalizedMd5))
-    return false;
-
-  return db.FindPassword(normalizedMd5, password);
+  return LookupPassword_Direct(GetDatabasePath(), md5, password, errorMessage);
 }
 
 bool StorePassword(const AString &md5, const UString &password)
 {
-  CDatabase db;
   UString errorMessage;
-  db.Load(GetDatabasePath(), true, NULL, errorMessage);
-  db.SetPassword(md5, password);
-  return db.Save(GetDatabasePath(), errorMessage);
+  return StorePassword_Direct(GetDatabasePath(), md5, password, errorMessage);
 }
 
 bool ComputeFileMd5(const FString &path, AString &md5Hex)
@@ -560,6 +568,113 @@ void CState::SaveIfNeeded(const UString &password)
   if (_savePending && _md5Defined)
     StorePassword(_md5Hex, password);
   _savePending = false;
+}
+
+bool LookupPassword_Direct(const FString &path, const AString &md5, UString &password, UString &errorMessage)
+{
+  password.Empty();
+
+  AString normalizedMd5;
+  if (!NormalizeMd5(md5, normalizedMd5))
+    return false;
+
+  const EDbKind kind = DetectDbKind(path, errorMessage);
+  if (kind == kDbKind_Missing)
+    return false;
+  if (kind != kDbKind_Sqlite)
+  {
+    if (errorMessage.IsEmpty())
+      Set_NotSqliteError(errorMessage, path);
+    return false;
+  }
+
+  sqlite3 *db = NULL;
+  if (!OpenDatabase(path, true, &db, errorMessage))
+    return false;
+
+  sqlite3_stmt *stmt = NULL;
+  const int rc = sqlite3_prepare_v2(
+      db,
+      "SELECT password FROM password_entries WHERE archive_md5=?1 LIMIT 1;",
+      -1,
+      &stmt,
+      NULL);
+  if (rc != SQLITE_OK)
+  {
+    Set_SqliteError(errorMessage, db, "Cannot query password book database", &path);
+    sqlite3_close(db);
+    return false;
+  }
+
+  bool found = false;
+  if (sqlite3_bind_text(stmt, 1, normalizedMd5, normalizedMd5.Len(), SQLITE_TRANSIENT) == SQLITE_OK)
+  {
+    const int stepRc = sqlite3_step(stmt);
+    if (stepRc == SQLITE_ROW)
+    {
+      const unsigned char *passwordText = sqlite3_column_text(stmt, 0);
+      if (passwordText)
+      {
+        ConvertUtf8ToUnicode_Safe((const char *)(const void *)passwordText, password);
+        found = true;
+      }
+    }
+    else if (stepRc != SQLITE_DONE)
+      Set_SqliteError(errorMessage, db, "Cannot query password book database", &path);
+  }
+  else
+    Set_SqliteError(errorMessage, db, "Cannot query password book database", &path);
+
+  sqlite3_finalize(stmt);
+  sqlite3_close(db);
+  return found;
+}
+
+bool StorePassword_Direct(const FString &path, const AString &md5, const UString &password, UString &errorMessage)
+{
+  AString normalizedMd5;
+  if (!NormalizeMd5(md5, normalizedMd5))
+    return false;
+
+  sqlite3 *db = NULL;
+  if (!OpenDatabase(path, true, &db, errorMessage))
+    return false;
+
+  AString passwordUtf8;
+  ConvertUnicodeToUTF8(password, passwordUtf8);
+
+  sqlite3_stmt *stmt = NULL;
+  const int rc = sqlite3_prepare_v2(
+      db,
+      "INSERT INTO password_entries(archive_md5, password, source) VALUES(?1, ?2, 0) "
+      "ON CONFLICT(archive_md5) DO UPDATE SET "
+      "password=excluded.password, "
+      "source=excluded.source, "
+      "updated_utc=CURRENT_TIMESTAMP;",
+      -1,
+      &stmt,
+      NULL);
+  if (rc != SQLITE_OK)
+  {
+    Set_SqliteError(errorMessage, db, "Cannot update password book database", &path);
+    sqlite3_close(db);
+    return false;
+  }
+
+  bool ok = false;
+  if (sqlite3_bind_text(stmt, 1, normalizedMd5, normalizedMd5.Len(), SQLITE_TRANSIENT) == SQLITE_OK
+      && sqlite3_bind_text(stmt, 2, passwordUtf8, passwordUtf8.Len(), SQLITE_TRANSIENT) == SQLITE_OK)
+  {
+    ok = (sqlite3_step(stmt) == SQLITE_DONE);
+    if (!ok)
+      Set_SqliteError(errorMessage, db, "Cannot update password book database", &path);
+  }
+  else
+    Set_SqliteError(errorMessage, db, "Cannot update password book database", &path);
+
+  sqlite3_finalize(stmt);
+  sqlite3_close(db);
+  return ok;
 }
 
 }

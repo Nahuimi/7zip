@@ -5,8 +5,10 @@
 #include "../../../Common/IntToString.h"
 #include "../../../Common/MyCom.h"
 #include "../../../Common/StringConvert.h"
+#include "../../../Common/UTFConvert.h"
 
 #include "../../../Windows/DLL.h"
+#include "../../../Windows/ErrorMsg.h"
 #include "../../../Windows/FileFind.h"
 #include "../../../Windows/FileIO.h"
 #include "../../../Windows/FileName.h"
@@ -26,6 +28,7 @@ namespace NPasswordBook {
 static LPCTSTR const kPasswordBookRegPath =
     TEXT("Software") TEXT(STRING_PATH_SEPARATOR) TEXT("7-Zip");
 static LPCTSTR const kPasswordBookEnabled = TEXT("UsePasswordBook");
+static const Byte kUtf8Bom[3] = { 0xEF, 0xBB, 0xBF };
 
 typedef UINT (WINAPI *Func_GetApiVersion)();
 typedef HRESULT (WINAPI *Func_EnsureDatabase)(LPCWSTR dbPath, BSTR *errorMessage);
@@ -213,6 +216,181 @@ static bool SetErrorFromPluginCall(HRESULT res, BSTR errorBstr, UString &errorMe
   return false;
 }
 
+static void Set_FileError(UString &errorMessage, const char *message, const FString &path)
+{
+  errorMessage = GetUnicodeString(message);
+  errorMessage += L": ";
+  errorMessage += NError::MyFormatMessage(GetLastError_noZero_HRESULT());
+  errorMessage += L": ";
+  errorMessage += fs2us(path);
+}
+
+static bool ReadFile_Utf8(const FString &path, UString &text, UString &errorMessage)
+{
+  text.Empty();
+  errorMessage.Empty();
+
+  CInFile file;
+  if (!file.OpenShared(path, true))
+  {
+    Set_FileError(errorMessage, "Cannot open CSV file", path);
+    return false;
+  }
+
+  UInt64 length64 = 0;
+  if (!file.GetLength(length64))
+  {
+    Set_FileError(errorMessage, "Cannot get CSV file size", path);
+    return false;
+  }
+
+  if (length64 >= ((UInt64)1 << 30))
+  {
+    errorMessage = L"CSV file is too large: ";
+    errorMessage += fs2us(path);
+    return false;
+  }
+
+  const unsigned length = (unsigned)length64;
+  AString utf8;
+  if (length != 0)
+  {
+    size_t processed = 0;
+    char *buf = utf8.GetBuf(length);
+    if (!file.ReadFull(buf, length, processed) || processed != length)
+    {
+      Set_FileError(errorMessage, "Cannot read CSV file", path);
+      return false;
+    }
+    utf8.ReleaseBuf_SetEnd(length);
+  }
+
+  if (utf8.Len() >= 3
+      && (Byte)utf8[0] == 0xEF
+      && (Byte)utf8[1] == 0xBB
+      && (Byte)utf8[2] == 0xBF)
+    utf8.DeleteFrontal(3);
+
+  if (!ConvertUTF8ToUnicode(utf8, text))
+  {
+    errorMessage = L"CSV file is not valid UTF-8: ";
+    errorMessage += fs2us(path);
+    return false;
+  }
+
+  return true;
+}
+
+static bool WriteFile_Utf8(const FString &path, const UString &text, UString &errorMessage)
+{
+  errorMessage.Empty();
+
+  AString utf8;
+  ConvertUnicodeToUTF8(text, utf8);
+
+  COutFile file;
+  if (!file.Create_ALWAYS(path))
+  {
+    Set_FileError(errorMessage, "Cannot create CSV file", path);
+    return false;
+  }
+
+  if (!file.WriteFull(kUtf8Bom, sizeof(kUtf8Bom)))
+  {
+    Set_FileError(errorMessage, "Cannot write CSV file", path);
+    return false;
+  }
+
+  if (utf8.Len() != 0)
+    if (!file.WriteFull(utf8, utf8.Len()))
+    {
+      Set_FileError(errorMessage, "Cannot write CSV file", path);
+      return false;
+    }
+
+  if (!file.Close())
+  {
+    Set_FileError(errorMessage, "Cannot close CSV file", path);
+    return false;
+  }
+
+  return true;
+}
+
+static void Csv_AppendEscaped(UString &dest, const UString &value)
+{
+  bool needQuotes = false;
+  for (unsigned i = 0; i < value.Len(); i++)
+  {
+    const wchar_t c = value[i];
+    if (c == L',' || c == L'"' || c == L'\r' || c == L'\n')
+    {
+      needQuotes = true;
+      break;
+    }
+  }
+
+  if (!needQuotes)
+  {
+    dest += value;
+    return;
+  }
+
+  dest += L'"';
+  for (unsigned i = 0; i < value.Len(); i++)
+  {
+    const wchar_t c = value[i];
+    if (c == L'"')
+      dest += L"\"\"";
+    else
+      dest += c;
+  }
+  dest += L'"';
+}
+
+static bool Csv_ParseField(const UString &text, unsigned &pos, UString &field)
+{
+  field.Empty();
+
+  if (pos >= text.Len())
+    return true;
+
+  if (text[pos] == L'"')
+  {
+    pos++;
+    for (;;)
+    {
+      if (pos >= text.Len())
+        return false;
+      const wchar_t c = text[pos++];
+      if (c == L'"')
+      {
+        if (pos < text.Len() && text[pos] == L'"')
+        {
+          field += L'"';
+          pos++;
+          continue;
+        }
+        break;
+      }
+      field += c;
+    }
+  }
+  else
+  {
+    while (pos < text.Len())
+    {
+      const wchar_t c = text[pos];
+      if (c == L',' || c == L'\r' || c == L'\n')
+        break;
+      field += c;
+      pos++;
+    }
+  }
+
+  return true;
+}
+
 bool ReadEnabled()
 {
   bool enabled = false;
@@ -236,7 +414,7 @@ FString GetDatabasePath()
 
 FString GetDefaultExchangePath()
 {
-  return NDLL::GetModuleDirPrefix() + FTEXT("7zPasswordBook.7zpb");
+  return NDLL::GetModuleDirPrefix() + FTEXT("7zPasswordBook.csv");
 }
 
 static BOOL WINAPI LoadEnumCallback(void *callbackParam, LPCSTR md5, LPCWSTR password)
@@ -366,6 +544,94 @@ bool CDatabase::Save(const FString &path, UString &errorMessage) const
   BSTR errorBstr = NULL;
   const HRESULT res = plugin->SaveDatabase(fs2us(path), entries.ConstData(), entries.Size(), &errorBstr);
   return SetErrorFromPluginCall(res, errorBstr, errorMessage);
+}
+
+bool LoadCsv(const FString &path, CDatabase &db, CLoadStats *stats, UString &errorMessage)
+{
+  db.Clear();
+  if (stats)
+    *stats = CLoadStats();
+
+  UString text;
+  if (!ReadFile_Utf8(path, text, errorMessage))
+    return false;
+
+  unsigned pos = 0;
+  bool firstRow = true;
+  while (pos < text.Len())
+  {
+    UString md5;
+    UString password;
+
+    if (!Csv_ParseField(text, pos, md5))
+    {
+      if (stats)
+        stats->Invalid++;
+      break;
+    }
+
+    if (pos < text.Len() && text[pos] == L',')
+      pos++;
+
+    if (!Csv_ParseField(text, pos, password))
+    {
+      if (stats)
+        stats->Invalid++;
+      break;
+    }
+
+    while (pos < text.Len() && text[pos] != L'\n')
+      pos++;
+    if (pos < text.Len() && text[pos] == L'\n')
+      pos++;
+
+    md5.Trim();
+
+    if (firstRow)
+    {
+      firstRow = false;
+      if (md5.IsEqualTo_Ascii_NoCase("archive_md5"))
+        continue;
+    }
+
+    bool updated = false;
+    const unsigned prevSize = db.Size();
+    db.SetPassword(AString(GetAnsiString(md5)), password, &updated);
+
+    if (db.Size() == prevSize && !updated)
+    {
+      if (stats)
+        stats->Invalid++;
+      continue;
+    }
+
+    if (stats)
+    {
+      if (updated)
+        stats->Updated++;
+      else
+        stats->Added++;
+    }
+  }
+
+  errorMessage.Empty();
+  return true;
+}
+
+bool SaveCsv(const FString &path, const CDatabase &db, UString &errorMessage)
+{
+  UString text = L"archive_md5,password\r\n";
+
+  FOR_VECTOR (i, db.Items())
+  {
+    const CEntry &entry = db.Items()[i];
+    text += GetUnicodeString(entry.Md5);
+    text.Add_Char(L',');
+    Csv_AppendEscaped(text, entry.Password);
+    text += L"\r\n";
+  }
+
+  return WriteFile_Utf8(path, text, errorMessage);
 }
 
 bool EnsureDatabaseExists(UString &errorMessage)

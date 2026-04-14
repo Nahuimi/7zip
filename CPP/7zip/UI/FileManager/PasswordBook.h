@@ -54,6 +54,10 @@ bool EnsureDatabaseExists(UString &errorMessage);
 bool LookupPassword(const AString &md5, UString &password);
 bool StorePassword(const AString &md5, const UString &password);
 bool ComputeFileMd5(const FString &path, AString &md5Hex);
+bool LookupPassword_Direct(const FString &path, const AString &md5, UString &password, UString &errorMessage);
+bool StorePassword_Direct(const FString &path, const AString &md5, const UString &password, UString &errorMessage);
+bool LoadCsv(const FString &path, CDatabase &db, CLoadStats *stats, UString &errorMessage);
+bool SaveCsv(const FString &path, const CDatabase &db, UString &errorMessage);
 
 class CState
 {

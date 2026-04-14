@@ -103,10 +103,8 @@ void CPasswordBookPage::ImportData()
   CObjectVector<CBrowseFilterInfo> filters;
   {
     CBrowseFilterInfo &f = filters.AddNew();
-    f.Description = LangString(IDS_PASSWORD_BOOK_FILTER);
-    f.Description += L" (*.7zpb;*.db)";
-    f.Masks.Add(UString(L"*.7zpb"));
-    f.Masks.Add(UString(L"*.db"));
+    f.Description = L"CSV (*.csv)";
+    f.Masks.Add(UString(L"*.csv"));
   }
   {
     CBrowseFilterInfo &f = filters.AddNew();
@@ -125,7 +123,7 @@ void CPasswordBookPage::ImportData()
   NPasswordBook::CDatabase importedDb;
   NPasswordBook::CLoadStats loadStats;
   UString errorMessage;
-  if (!importedDb.Load(us2fs(browseInfo.FilePath), false, &loadStats, errorMessage))
+  if (!NPasswordBook::LoadCsv(us2fs(browseInfo.FilePath), importedDb, &loadStats, errorMessage))
   {
     MessageBoxW(*this, errorMessage, L"7-Zip", MB_OK | MB_ICONERROR);
     return;
@@ -171,9 +169,8 @@ void CPasswordBookPage::ExportData()
   CObjectVector<CBrowseFilterInfo> filters;
   {
     CBrowseFilterInfo &f = filters.AddNew();
-    f.Description = LangString(IDS_PASSWORD_BOOK_FILTER);
-    f.Description += L" (*.7zpb)";
-    f.Masks.Add(UString(L"*.7zpb"));
+    f.Description = L"CSV (*.csv)";
+    f.Masks.Add(UString(L"*.csv"));
   }
   {
     CBrowseFilterInfo &f = filters.AddNew();
@@ -191,7 +188,7 @@ void CPasswordBookPage::ExportData()
     return;
 
   UString errorMessage;
-  if (!_db.Save(us2fs(browseInfo.FilePath), errorMessage))
+  if (!NPasswordBook::SaveCsv(us2fs(browseInfo.FilePath), _db, errorMessage))
   {
     MessageBoxW(*this, errorMessage, L"7-Zip", MB_OK | MB_ICONERROR);
     return;
