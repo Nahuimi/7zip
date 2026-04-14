@@ -204,8 +204,11 @@ static bool EnsureSchema(sqlite3 *db, const FString &path, UString &errorMessage
 static bool OpenDatabase(const FString &path, bool createSchema, sqlite3 **db, UString &errorMessage)
 {
   *db = NULL;
+  const bool dbExists = DoesFileExist_Raw(path);
   const UString pathU = fs2us(path);
-  const int rc = sqlite3_open16((const void *)(const wchar_t *)pathU, db);
+  AString pathA;
+  ConvertUnicodeToUTF8(pathU, pathA);
+  const int rc = sqlite3_open(pathA, db);
   if (rc != SQLITE_OK)
   {
     Set_SqliteError(errorMessage, *db, "Cannot open password book database", &path);
@@ -221,6 +224,18 @@ static bool OpenDatabase(const FString &path, bool createSchema, sqlite3 **db, U
 
   if (createSchema)
   {
+    if (!dbExists)
+      if (!SqliteExec(*db,
+          "PRAGMA encoding='UTF-8';",
+          "Cannot initialize password book database",
+          &path,
+          errorMessage))
+      {
+        sqlite3_close(*db);
+        *db = NULL;
+        return false;
+      }
+
     if (!EnsureSchema(*db, path, errorMessage))
     {
       sqlite3_close(*db);
