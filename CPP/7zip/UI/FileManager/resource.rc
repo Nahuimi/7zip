@@ -293,6 +293,14 @@ BEGIN
   IDS_COMBINE_CANT_DETECT_SPLIT_FILE  "Cannot detect file as split file"
   IDS_COMBINE_CANT_FIND_MORE_THAN_ONE_PART  "Cannot find more than one part of split file"
 
+  IDS_PASSWORD_BOOK_FILTER           "7-Zip Password Book"
+  IDS_PASSWORD_BOOK_RECORDS          "Records: {0}"
+  IDS_PASSWORD_BOOK_INVALID_IGNORED  "Invalid lines ignored: {0}"
+  IDS_PASSWORD_BOOK_IMPORTED_NEW     "New entries: {0}"
+  IDS_PASSWORD_BOOK_IMPORTED_UPDATED "Updated entries: {0}"
+  IDS_PASSWORD_BOOK_IMPORTED_INVALID "Invalid entries: {0}"
+  IDS_PASSWORD_BOOK_EXPORTED         "Exported entries: {0}"
+
 END
 
 #include "AboutDialog.rc"
@@ -311,6 +319,7 @@ END
 #include "MessagesDialog.rc"
 #include "OverwriteDialog.rc"
 #include "PasswordDialog.rc"
+#include "PasswordBookPage.rc"
 #include "ProgressDialog2.rc"
 #include "PropertyName.rc"
 #include "SettingsPage.rc"

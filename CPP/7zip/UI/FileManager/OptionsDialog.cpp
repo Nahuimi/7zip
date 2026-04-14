@@ -15,6 +15,8 @@
 #include "LangPageRes.h"
 #include "MenuPage.h"
 #include "MenuPageRes.h"
+#include "PasswordBookPage.h"
+#include "PasswordBookPageRes.h"
 #include "SettingsPage.h"
 #include "SettingsPageRes.h"
 #include "SystemPage.h"
@@ -33,6 +35,7 @@ void OptionsDialog(HWND hwndOwner, HINSTANCE /* hInstance */)
 {
   CSystemPage systemPage;
   CMenuPage menuPage;
+  CPasswordBookPage passwordBookPage;
   CFoldersPage foldersPage;
   CEditPage editPage;
   CSettingsPage settingsPage;
@@ -44,12 +47,13 @@ void OptionsDialog(HWND hwndOwner, HINSTANCE /* hInstance */)
   const UINT pageIDs[] = {
       SIZED_DIALOG(IDD_SYSTEM),
       SIZED_DIALOG(IDD_MENU),
+      SIZED_DIALOG(IDD_PASSWORD_BOOK),
       SIZED_DIALOG(IDD_FOLDERS),
       SIZED_DIALOG(IDD_EDIT),
       SIZED_DIALOG(IDD_SETTINGS),
       SIZED_DIALOG(IDD_LANG) };
 
-  NControl::CPropertyPage *pagePointers[] = { &systemPage,  &menuPage, &foldersPage, &editPage, &settingsPage, &langPage };
+  NControl::CPropertyPage *pagePointers[] = { &systemPage, &menuPage, &passwordBookPage, &foldersPage, &editPage, &settingsPage, &langPage };
   
   for (unsigned i = 0; i < Z7_ARRAY_SIZE(pageIDs); i++)
   {

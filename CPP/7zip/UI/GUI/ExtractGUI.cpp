@@ -182,6 +182,7 @@ HRESULT ExtractGUI(
     HWND hwndParent)
 {
   messageWasDisplayed = false;
+  bool manualPasswordFromDialog = false;
 
   CThreadExtracting extracter;
   /*
@@ -244,6 +245,7 @@ HRESULT ExtractGUI(
       options.NtOptions.NtSecurity = dialog.NtSecurity;
       extractCallback->Password = dialog.Password;
       extractCallback->PasswordIsDefined = !dialog.Password.IsEmpty();
+      manualPasswordFromDialog = extractCallback->PasswordIsDefined;
       #endif
     }
     if (!MyGetFullPathName(outputDir, options.OutputDir))
@@ -278,6 +280,8 @@ HRESULT ExtractGUI(
   extracter.ExtractCallbackSpec->ProgressDialog = &extracter;
   extracter.FolderArchiveExtractCallback = extractCallback;
   extracter.ExtractCallbackSpec->Init();
+  if (manualPasswordFromDialog)
+    extractCallback->NoteManualPasswordForNextArchive();
 
   extracter.CompressingMode = false;
 

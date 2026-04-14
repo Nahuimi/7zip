@@ -119,6 +119,7 @@ FM_OBJS = \
   $O\ListViewDialog.obj \
   $O\MemDialog.obj \
   $O\OpenCallback.obj \
+  $O\PasswordBook.obj \
   $O\ProgramLocation.obj \
   $O\PropertyName.obj \
   $O\RegistryUtils.obj \
@@ -143,6 +144,7 @@ C_OBJS = \
   $O\Alloc.obj \
   $O\CpuArch.obj \
   $O\DllSecur.obj \
+  $O\Md5.obj \
   $O\Threads.obj \
 
 !include "../../Crc.mak"

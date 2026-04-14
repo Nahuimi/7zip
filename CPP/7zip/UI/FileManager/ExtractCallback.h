@@ -23,6 +23,7 @@
 #include "IFolder.h"
 #endif
 
+#include "PasswordBook.h"
 #include "ProgressDialog2.h"
 
 #ifndef Z7_SFX
@@ -289,6 +290,8 @@ public:
 #ifndef Z7_NO_CRYPTO
   UString Password;
 #endif
+  bool PasswordBook_ManualPasswordForNextArchive;
+  NPasswordBook::CState _passwordBook;
 
   UString _lang_Extracting;
   UString _lang_Testing;
@@ -318,6 +321,7 @@ public:
 #ifndef Z7_SFX
     , _hashCalc(NULL)
 #endif
+    , PasswordBook_ManualPasswordForNextArchive(false)
     {}
    
   ~CExtractCallbackImp();
@@ -342,6 +346,8 @@ public:
   #endif
 
   bool IsOK() const { return NumArchiveErrors == 0 && !ThereAreMessageErrors; }
+  void NoteManualPasswordForNextArchive()
+    { PasswordBook_ManualPasswordForNextArchive = true; }
 };
 
 #endif

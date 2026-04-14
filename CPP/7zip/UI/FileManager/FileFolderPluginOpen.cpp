@@ -312,6 +312,7 @@ HRESULT CFfpOpen::OpenFileFolderPlugin(IInStream *inStream,
     t.OpenCallbackSpec->PasswordIsDefined = Encrypted;
     t.OpenCallbackSpec->Password = Password;
     t.OpenCallbackSpec->ParentWindow = parentWindow;
+    t.OpenCallbackSpec->SetArchivePath(fs2us(path));
 
     /* COpenCallbackImp object will exist after Open stage for multivolume archives */
     COpenCallbackImp *openCallbackSpec = new COpenCallbackImp;
@@ -384,6 +385,7 @@ HRESULT CFfpOpen::OpenFileFolderPlugin(IInStream *inStream,
 
     if (t.Result == S_OK)
     {
+      t.OpenCallbackSpec->SavePasswordToBookIfNeeded();
       Library.Attach(library.Detach());
       // Folder.Attach(t.Folder.Detach());
       Folder = t.Folder;

@@ -1070,6 +1070,10 @@ $O/OpenCallback.o: ../../UI/FileManager/OpenCallback.cpp
 	$(CXX) $(CXXFLAGS) $<
 $O/OptionsDialog.o: ../../UI/FileManager/OptionsDialog.cpp
 	$(CXX) $(CXXFLAGS) $<
+$O/PasswordBook.o: ../../UI/FileManager/PasswordBook.cpp
+	$(CXX) $(CXXFLAGS) $<
+$O/PasswordBookPage.o: ../../UI/FileManager/PasswordBookPage.cpp
+	$(CXX) $(CXXFLAGS) $<
 $O/OverwriteDialog.o: ../../UI/FileManager/OverwriteDialog.cpp
 	$(CXX) $(CXXFLAGS) $<
 $O/Panel.o: ../../UI/FileManager/Panel.cpp

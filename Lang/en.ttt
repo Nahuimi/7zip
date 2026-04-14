@@ -247,6 +247,16 @@ Show &grid lines
 Single-click to open an item
 &Alternative selection mode
 Use &large memory pages
+2600
+Password Book
+Use password book
+Search:
+
+
+&Delete
+&Import...
+&Export...
+
 2900
 About 7-Zip
 7-Zip is free software
@@ -533,3 +543,11 @@ Maximum amount of RAM memory usage allowed to unpack archives:
 &Allow archive unpacking
 &Skip archive unpacking
 Archive unpacking was skipped.
+7830
+7-Zip Password Book
+Records: {0}
+Invalid lines ignored: {0}
+New entries: {0}
+Updated entries: {0}
+Invalid entries: {0}
+Exported entries: {0}

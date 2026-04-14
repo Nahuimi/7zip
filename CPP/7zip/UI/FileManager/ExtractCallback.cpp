@@ -44,6 +44,7 @@ CExtractCallbackImp::~CExtractCallbackImp() {}
 
 void CExtractCallbackImp::Init()
 {
+  PasswordBook_ManualPasswordForNextArchive = false;
   LangString(IDS_PROGRESS_EXTRACTING, _lang_Extracting);
   LangString(IDS_PROGRESS_TESTING, _lang_Testing);
   LangString(IDS_PROGRESS_SKIPPING, _lang_Skipping);
@@ -375,6 +376,16 @@ void SetExtractErrorMessage(Int32 opRes, Int32 encrypted, const wchar_t *fileNam
 
 Z7_COM7F_IMF(CExtractCallbackImp::SetOperationResult(Int32 opRes, Int32 encrypted))
 {
+  #ifndef Z7_NO_CRYPTO
+  if (opRes == NArchive::NExtract::NOperationResult::kWrongPassword)
+  {
+    if (_passwordBook.WasAutoPasswordUsed())
+      _passwordBook.NoteWrongPassword();
+    PasswordIsDefined = false;
+    Password.Empty();
+  }
+  #endif
+
   switch (opRes)
   {
     case NArchive::NExtract::NOperationResult::kOK:
@@ -417,6 +428,14 @@ HRESULT CExtractCallbackImp::BeforeOpen(const wchar_t *name, bool /* testMode */
 {
   _currentArchivePath = name;
   _needWriteArchivePath = true;
+  _passwordBook.BeginArchive(name);
+  #ifndef Z7_NO_CRYPTO
+  if (PasswordBook_ManualPasswordForNextArchive && PasswordIsDefined)
+  {
+    _passwordBook.NoteManualPassword();
+    PasswordBook_ManualPasswordForNextArchive = false;
+  }
+  #endif
   #ifndef Z7_SFX
   RINOK(ProgressDialog->Sync.CheckStop())
   ProgressDialog->Sync.Set_TitleFileName(name);
@@ -626,6 +645,20 @@ HRESULT CExtractCallbackImp::OpenResult(const CCodecs *codecs, const CArchiveLin
   _currentArchivePath = name;
   _needWriteArchivePath = true;
 
+  if (result != S_OK && arcLink.PasswordWasAsked)
+  {
+    const UInt32 errorFlags = arcLink.NonOpen_ErrorInfo.GetErrorFlags();
+    if ((errorFlags & kpv_ErrorFlags_EncryptedHeadersError) != 0)
+    {
+      #ifndef Z7_NO_CRYPTO
+      if (_passwordBook.WasAutoPasswordUsed())
+        _passwordBook.NoteWrongPassword();
+      PasswordIsDefined = false;
+      Password.Empty();
+      #endif
+    }
+  }
+
   UString s;
   OpenResult_GUI(s, codecs, arcLink, name, result);
   if (!s.IsEmpty())
@@ -660,7 +693,12 @@ HRESULT CExtractCallbackImp::ExtractResult(HRESULT result)
   #endif
 
   if (result == S_OK)
+  {
+    #ifndef Z7_NO_CRYPTO
+    _passwordBook.SaveIfNeeded(Password);
+    #endif
     return result;
+  }
   NumArchiveErrors++;
   if (result == E_ABORT
       || result == HRESULT_FROM_WIN32(ERROR_DISK_FULL)
@@ -688,6 +726,15 @@ Z7_COM7F_IMF(CExtractCallbackImp::CryptoGetTextPassword(BSTR *password))
   PasswordWasAsked = true;
   if (!PasswordIsDefined)
   {
+    UString passwordFromBook;
+    if (_passwordBook.TryGetPassword(passwordFromBook))
+    {
+      Password = passwordFromBook;
+      PasswordIsDefined = true;
+    }
+  }
+  if (!PasswordIsDefined)
+  {
     CPasswordDialog dialog;
     #ifndef Z7_SFX
     const bool showPassword = NExtract::Read_ShowPassword();
@@ -698,6 +745,7 @@ Z7_COM7F_IMF(CExtractCallbackImp::CryptoGetTextPassword(BSTR *password))
       return E_ABORT;
     Password = dialog.Password;
     PasswordIsDefined = true;
+    _passwordBook.NoteManualPassword();
     #ifndef Z7_SFX
     if (dialog.ShowPassword != showPassword)
       NExtract::Save_ShowPassword(dialog.ShowPassword);

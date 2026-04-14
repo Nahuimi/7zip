@@ -67,6 +67,15 @@ HRESULT COpenArchiveCallback::Open_CryptoGetTextPassword(BSTR *password)
   PasswordWasAsked = true;
   if (!PasswordIsDefined)
   {
+    UString passwordFromBook;
+    if (PasswordBook.TryGetPassword(passwordFromBook))
+    {
+      Password = passwordFromBook;
+      PasswordIsDefined = true;
+    }
+  }
+  if (!PasswordIsDefined)
+  {
     CPasswordDialog dialog;
     bool showPassword = NExtract::Read_ShowPassword();
     dialog.ShowPassword = showPassword;
@@ -77,6 +86,7 @@ HRESULT COpenArchiveCallback::Open_CryptoGetTextPassword(BSTR *password)
 
     Password = dialog.Password;
     PasswordIsDefined = true;
+    PasswordBook.NoteManualPassword();
     if (dialog.ShowPassword != showPassword)
       NExtract::Save_ShowPassword(dialog.ShowPassword);
   }

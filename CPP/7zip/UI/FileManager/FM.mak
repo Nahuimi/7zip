@@ -32,6 +32,7 @@ FM_OBJS = \
   $O\MyLoadMenu.obj \
   $O\OpenCallback.obj \
   $O\OptionsDialog.obj \
+  $O\PasswordBook.obj \
   $O\Panel.obj \
   $O\PanelCopy.obj \
   $O\PanelCrc.obj \
@@ -67,6 +68,7 @@ FM_OBJS = \
   $O\MessagesDialog.obj \
   $O\OverwriteDialog.obj \
   $O\PasswordDialog.obj \
+  $O\PasswordBookPage.obj \
   $O\ProgressDialog2.obj \
   $O\SettingsPage.obj \
   $O\SplitDialog.obj \
@@ -90,6 +92,7 @@ WIN_OBJS = $(WIN_OBJS) \
 
 C_OBJS = $(C_OBJS) \
   $O\DllSecur.obj \
+  $O\Md5.obj \
 
 AGENT_OBJS = \
   $O\Agent.obj \

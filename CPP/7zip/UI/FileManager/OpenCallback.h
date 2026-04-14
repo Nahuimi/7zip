@@ -11,6 +11,8 @@
 #include "ProgressDialog2.h"
 #endif
 
+#include "PasswordBook.h"
+
 /* we can use IArchiveOpenCallback or IOpenCallbackUI here */
 
 class COpenArchiveCallback Z7_final:
@@ -29,6 +31,7 @@ public:
   UString Password;
   HWND ParentWindow;
   CProgressDialog ProgressDialog;
+  NPasswordBook::CState PasswordBook;
 
   /*
   Z7_COM_UNKNOWN_IMP_3(
@@ -64,6 +67,9 @@ public:
   {
     return ProgressDialog.Create(title, thread, ParentWindow);
   }
+
+  void SetArchivePath(const UString &path) { PasswordBook.BeginArchive(path); }
+  void SavePasswordToBookIfNeeded() { PasswordBook.SaveIfNeeded(Password); }
 };
 
 #endif
