@@ -895,6 +895,7 @@ public:
   void OpenItem(unsigned index, bool tryInternal, bool tryExternal, const wchar_t *type = NULL);
   void EditItem(bool useEditor);
   void EditItem(unsigned index, bool useEditor);
+  void QueryPassword();
 
   void RenameFile();
   void ChangeComment();

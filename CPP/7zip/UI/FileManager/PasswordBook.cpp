@@ -647,38 +647,14 @@ bool EnsureDatabaseExists(UString &errorMessage)
 
 bool LookupPassword(const AString &md5, UString &password)
 {
-  password.Empty();
-
-  CPlugin *plugin = NULL;
   UString errorMessage;
-  if (!GetPlugin(plugin, errorMessage))
-    return false;
-
-  BSTR passwordBstr = NULL;
-  BSTR errorBstr = NULL;
-  const HRESULT res = plugin->LookupPassword(fs2us(GetDatabasePath()), md5, &passwordBstr, &errorBstr);
-  CPlugin::BstrToString_And_Free(errorBstr, errorMessage);
-  if (res != S_OK)
-  {
-    if (passwordBstr)
-      ::SysFreeString(passwordBstr);
-    return false;
-  }
-
-  CPlugin::BstrToString_And_Free(passwordBstr, password);
-  return !password.IsEmpty();
+  return LookupPassword_Direct(GetDatabasePath(), md5, password, errorMessage);
 }
 
 bool StorePassword(const AString &md5, const UString &password)
 {
-  CPlugin *plugin = NULL;
   UString errorMessage;
-  if (!GetPlugin(plugin, errorMessage))
-    return false;
-
-  BSTR errorBstr = NULL;
-  const HRESULT res = plugin->StorePassword(fs2us(GetDatabasePath()), md5, password, &errorBstr);
-  return SetErrorFromPluginCall(res, errorBstr, errorMessage);
+  return StorePassword_Direct(GetDatabasePath(), md5, password, errorMessage);
 }
 
 bool ComputeFileMd5(const FString &path, AString &md5Hex)
@@ -748,6 +724,40 @@ void CState::SaveIfNeeded(const UString &password)
   if (_savePending && _md5Defined)
     StorePassword(_md5Hex, password);
   _savePending = false;
+}
+
+bool LookupPassword_Direct(const FString &path, const AString &md5, UString &password, UString &errorMessage)
+{
+  password.Empty();
+
+  CPlugin *plugin = NULL;
+  if (!GetPlugin(plugin, errorMessage))
+    return false;
+
+  BSTR passwordBstr = NULL;
+  BSTR errorBstr = NULL;
+  const HRESULT res = plugin->LookupPassword(fs2us(path), md5, &passwordBstr, &errorBstr);
+  CPlugin::BstrToString_And_Free(errorBstr, errorMessage);
+  if (res != S_OK)
+  {
+    if (passwordBstr)
+      ::SysFreeString(passwordBstr);
+    return false;
+  }
+
+  CPlugin::BstrToString_And_Free(passwordBstr, password);
+  return !password.IsEmpty();
+}
+
+bool StorePassword_Direct(const FString &path, const AString &md5, const UString &password, UString &errorMessage)
+{
+  CPlugin *plugin = NULL;
+  if (!GetPlugin(plugin, errorMessage))
+    return false;
+
+  BSTR errorBstr = NULL;
+  const HRESULT res = plugin->StorePassword(fs2us(path), md5, password, &errorBstr);
+  return SetErrorFromPluginCall(res, errorBstr, errorMessage);
 }
 
 }

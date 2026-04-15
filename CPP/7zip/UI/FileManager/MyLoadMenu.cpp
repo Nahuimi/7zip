@@ -790,6 +790,9 @@ void CFileMenu::Load(HMENU hMenu, unsigned startPos)
       if (item.wID == IDM_LINK && numItems != 1)
         disable = true;
 
+      if (item.wID == IDM_QUERY_PASSWORD)
+        disable = !isOneFsFile;
+
       if (item.wID == IDM_ALT_STREAMS)
         disable = !isAltStreamsSupported;
 
@@ -870,6 +873,7 @@ bool ExecuteFileCommand(unsigned id)
     case IDM_OPEN_OUTSIDE: g_App.OpenItemOutside(); break;
     case IDM_FILE_VIEW: g_App.EditItem(false); break;
     case IDM_FILE_EDIT: g_App.EditItem(true); break;
+    case IDM_QUERY_PASSWORD: g_App.QueryPassword(); break;
     case IDM_RENAME: g_App.Rename(); break;
     case IDM_COPY_TO: g_App.CopyTo(); break;
     case IDM_MOVE_TO: g_App.MoveTo(); break;

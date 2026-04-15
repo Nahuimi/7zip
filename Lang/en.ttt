@@ -49,6 +49,7 @@ Open &Inside
 Open O&utside
 &View
 &Edit
+Query Password
 Rena&me
 &Copy To...
 &Move To...
@@ -551,3 +552,5 @@ New entries: {0}
 Updated entries: {0}
 Invalid entries: {0}
 Exported entries: {0}
+Password: {0}
+No password was found in the password book.

@@ -18,6 +18,7 @@
 #include "LangUtils.h"
 #include "ListViewDialog.h"
 #include "MyLoadMenu.h"
+#include "PasswordBook.h"
 #include "PropertyName.h"
 
 #include "PropertyNameRes.h"
@@ -875,6 +876,48 @@ bool CPanel::IsThereReadOnlyFolder() const
       return true;
   }
   return false;
+}
+
+void CPanel::QueryPassword()
+{
+  if (!Is_IO_FS_Folder())
+  {
+    MessageBox_Error_UnsupportOperation();
+    return;
+  }
+
+  CRecordVector<UInt32> operatedIndices;
+  Get_ItemIndices_Operated(operatedIndices);
+  if (operatedIndices.Size() != 1 || IsItem_Folder(operatedIndices[0]))
+  {
+    MessageBox_Error(LangString(IDS_SELECT_ONE_FILE));
+    return;
+  }
+
+  const FString filePath = us2fs(GetItemFullPath(operatedIndices[0]));
+
+  AString md5;
+  if (!NPasswordBook::ComputeFileMd5(filePath, md5))
+  {
+    MessageBox_LastError();
+    return;
+  }
+
+  UString password;
+  UString errorMessage;
+  if (!NPasswordBook::LookupPassword_Direct(NPasswordBook::GetDatabasePath(), md5, password, errorMessage))
+  {
+    if (!errorMessage.IsEmpty())
+      MessageBox_Error(errorMessage);
+    else
+      MessageBox_Error(LangString(IDS_PASSWORD_BOOK_QUERY_NOT_FOUND));
+    return;
+  }
+
+  ::MessageBoxW(*this,
+      MyFormatNew(IDS_PASSWORD_BOOK_QUERY_RESULT, password),
+      L"7-Zip",
+      MB_OK | MB_ICONINFORMATION);
 }
 
 bool CPanel::CheckBeforeUpdate(UINT resourceID)

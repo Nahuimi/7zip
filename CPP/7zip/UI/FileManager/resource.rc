@@ -41,6 +41,7 @@ BEGIN
     MENUITEM "Open O&utside\tShift+Enter",  IDM_OPEN_OUTSIDE
     MENUITEM "&View\tF3",                   IDM_FILE_VIEW
     MENUITEM "&Edit\tF4",                   IDM_FILE_EDIT
+    MENUITEM "查询密码",                    IDM_QUERY_PASSWORD
     MY_MENUITEM_SEPARATOR
     MENUITEM "Rena&me\tF2",                 IDM_RENAME
     MENUITEM "&Copy To...\tF5",             IDM_COPY_TO
@@ -300,6 +301,8 @@ BEGIN
   IDS_PASSWORD_BOOK_IMPORTED_UPDATED "Updated entries: {0}"
   IDS_PASSWORD_BOOK_IMPORTED_INVALID "Invalid entries: {0}"
   IDS_PASSWORD_BOOK_EXPORTED         "Exported entries: {0}"
+  IDS_PASSWORD_BOOK_QUERY_RESULT     "Password: {0}"
+  IDS_PASSWORD_BOOK_QUERY_NOT_FOUND  "No password was found in the password book."
 
 END
 
