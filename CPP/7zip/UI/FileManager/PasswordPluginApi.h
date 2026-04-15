@@ -4,7 +4,7 @@
 #include "../../../Common/MyWindows.h"
 
 #define Z7_PASSWORD_PLUGIN_NAME_W L"7zPasswordPlugins.dll"
-#define Z7_PASSWORD_PLUGIN_API_VERSION 1u
+#define Z7_PASSWORD_PLUGIN_API_VERSION 2u
 
 typedef BOOL (WINAPI *Z7PasswordPlugin_EnumCallback)(
     void *callbackParam,
@@ -51,8 +51,10 @@ extern "C"
       LPCWSTR password,
       BSTR *errorMessage);
 
-  HRESULT WINAPI Z7PasswordPlugin_QueryOnlineByMd5(
+  HRESULT WINAPI Z7PasswordPlugin_QueryExtensionByMd5(
       LPCSTR md5,
+      LPCWSTR archiveFileName,
+      UInt64 archiveSizeBytes,
       BSTR *password,
       BSTR *errorMessage);
 }

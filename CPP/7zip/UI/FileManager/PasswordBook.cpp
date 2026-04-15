@@ -36,6 +36,7 @@ typedef HRESULT (WINAPI *Func_LoadDatabase)(LPCWSTR dbPath, BOOL allowMissing, Z
 typedef HRESULT (WINAPI *Func_SaveDatabase)(LPCWSTR dbPath, const Z7PasswordPlugin_EntryW *entries, UInt32 numEntries, BSTR *errorMessage);
 typedef HRESULT (WINAPI *Func_LookupPassword)(LPCWSTR dbPath, LPCSTR md5, BSTR *password, BSTR *errorMessage);
 typedef HRESULT (WINAPI *Func_StorePassword)(LPCWSTR dbPath, LPCSTR md5, LPCWSTR password, BSTR *errorMessage);
+typedef HRESULT (WINAPI *Func_QueryExtensionByMd5)(LPCSTR md5, LPCWSTR archiveFileName, UInt64 archiveSizeBytes, BSTR *password, BSTR *errorMessage);
 
 class CPlugin
 {
@@ -57,6 +58,7 @@ public:
   Func_SaveDatabase SaveDatabase;
   Func_LookupPassword LookupPassword;
   Func_StorePassword StorePassword;
+  Func_QueryExtensionByMd5 QueryExtensionByMd5;
 
   CPlugin():
       _state(kNotLoaded),
@@ -65,7 +67,8 @@ public:
       LoadDatabase(NULL),
       SaveDatabase(NULL),
       LookupPassword(NULL),
-      StorePassword(NULL)
+      StorePassword(NULL),
+      QueryExtensionByMd5(NULL)
       {}
 
   static void BstrToString_And_Free(BSTR bstr, UString &s)
@@ -158,8 +161,9 @@ private:
     SaveDatabase = (Func_SaveDatabase)(void *)::GetProcAddress(_lib.Get_HMODULE(), "Z7PasswordPlugin_SaveDatabase");
     LookupPassword = (Func_LookupPassword)(void *)::GetProcAddress(_lib.Get_HMODULE(), "Z7PasswordPlugin_LookupPassword");
     StorePassword = (Func_StorePassword)(void *)::GetProcAddress(_lib.Get_HMODULE(), "Z7PasswordPlugin_StorePassword");
+    QueryExtensionByMd5 = (Func_QueryExtensionByMd5)(void *)::GetProcAddress(_lib.Get_HMODULE(), "Z7PasswordPlugin_QueryExtensionByMd5");
 
-    if (!GetApiVersion || !EnsureDatabase || !LoadDatabase || !SaveDatabase || !LookupPassword || !StorePassword)
+    if (!GetApiVersion || !EnsureDatabase || !LoadDatabase || !SaveDatabase || !LookupPassword || !StorePassword || !QueryExtensionByMd5)
     {
       _errorMessage = L"Password plugin DLL is missing required exports";
       return;
@@ -389,6 +393,14 @@ static bool Csv_ParseField(const UString &text, unsigned &pos, UString &field)
   }
 
   return true;
+}
+
+static UString GetFileNameFromPath(const FString &path)
+{
+  const int pos = path.ReverseFind_PathSepar();
+  if (pos < 0)
+    return fs2us(path);
+  return fs2us(path.Ptr((unsigned)pos + 1));
 }
 
 bool ReadEnabled()
@@ -701,11 +713,25 @@ void CState::BeginArchive(const UString &archivePath)
   _savePending = false;
   _wrongPasswordDetected = false;
   _md5Hex.Empty();
+  _archivePath.Empty();
+  _archiveFileName.Empty();
+  _archiveSizeBytes = 0;
+  _archiveSizeDefined = false;
 
   if (!_enabled || archivePath.IsEmpty())
     return;
 
-  _md5Defined = ComputeFileMd5(us2fs(archivePath), _md5Hex);
+  _archivePath = us2fs(archivePath);
+  _archiveFileName = GetFileNameFromPath(_archivePath);
+
+  CFileInfo fi;
+  if (fi.Find_FollowLink(_archivePath) && !fi.IsDir())
+  {
+    _archiveSizeBytes = fi.Size;
+    _archiveSizeDefined = true;
+  }
+
+  _md5Defined = ComputeFileMd5(_archivePath, _md5Hex);
 }
 
 bool CState::TryGetPassword(UString &password)
@@ -713,10 +739,21 @@ bool CState::TryGetPassword(UString &password)
   password.Empty();
   if (!_enabled || !_md5Defined || _autoPasswordWasUsed || _manualPasswordWasUsed)
     return false;
-  if (!LookupPassword(_md5Hex, password))
-    return false;
-  _autoPasswordWasUsed = true;
-  return true;
+  if (LookupPassword(_md5Hex, password))
+  {
+    _autoPasswordWasUsed = true;
+    return true;
+  }
+
+  UString errorMessage;
+  if (QueryExtensionPassword_Direct(_archivePath, _md5Hex, password, errorMessage))
+  {
+    _autoPasswordWasUsed = true;
+    _savePending = (_enabled && _md5Defined);
+    return true;
+  }
+
+  return false;
 }
 
 void CState::SaveIfNeeded(const UString &password)
@@ -758,6 +795,45 @@ bool StorePassword_Direct(const FString &path, const AString &md5, const UString
   BSTR errorBstr = NULL;
   const HRESULT res = plugin->StorePassword(fs2us(path), md5, password, &errorBstr);
   return SetErrorFromPluginCall(res, errorBstr, errorMessage);
+}
+
+bool QueryExtensionPassword_Direct(const FString &archivePath, const AString &md5, UString &password, UString &errorMessage)
+{
+  password.Empty();
+  errorMessage.Empty();
+
+  CPlugin *plugin = NULL;
+  if (!GetPlugin(plugin, errorMessage))
+    return false;
+
+  UString archiveFileName = GetFileNameFromPath(archivePath);
+  UInt64 archiveSizeBytes = 0;
+  CFileInfo fi;
+  if (fi.Find_FollowLink(archivePath) && !fi.IsDir())
+    archiveSizeBytes = fi.Size;
+
+  BSTR passwordBstr = NULL;
+  BSTR errorBstr = NULL;
+  const HRESULT res = plugin->QueryExtensionByMd5(md5, archiveFileName, archiveSizeBytes, &passwordBstr, &errorBstr);
+  CPlugin::BstrToString_And_Free(errorBstr, errorMessage);
+
+  if (res == E_NOTIMPL || res == S_FALSE)
+  {
+    if (passwordBstr)
+      ::SysFreeString(passwordBstr);
+    errorMessage.Empty();
+    return false;
+  }
+
+  if (res != S_OK)
+  {
+    if (passwordBstr)
+      ::SysFreeString(passwordBstr);
+    return false;
+  }
+
+  CPlugin::BstrToString_And_Free(passwordBstr, password);
+  return !password.IsEmpty();
 }
 
 }

@@ -56,6 +56,7 @@ bool StorePassword(const AString &md5, const UString &password);
 bool ComputeFileMd5(const FString &path, AString &md5Hex);
 bool LookupPassword_Direct(const FString &path, const AString &md5, UString &password, UString &errorMessage);
 bool StorePassword_Direct(const FString &path, const AString &md5, const UString &password, UString &errorMessage);
+bool QueryExtensionPassword_Direct(const FString &archivePath, const AString &md5, UString &password, UString &errorMessage);
 bool LoadCsv(const FString &path, CDatabase &db, CLoadStats *stats, UString &errorMessage);
 bool SaveCsv(const FString &path, const CDatabase &db, UString &errorMessage);
 
@@ -68,6 +69,10 @@ class CState
   bool _savePending;
   bool _wrongPasswordDetected;
   AString _md5Hex;
+  FString _archivePath;
+  UString _archiveFileName;
+  UInt64 _archiveSizeBytes;
+  bool _archiveSizeDefined;
 
 public:
   CState():
@@ -76,7 +81,9 @@ public:
       _autoPasswordWasUsed(false),
       _manualPasswordWasUsed(false),
       _savePending(false),
-      _wrongPasswordDetected(false)
+      _wrongPasswordDetected(false),
+      _archiveSizeBytes(0),
+      _archiveSizeDefined(false)
       {}
 
   void BeginArchive(const UString &archivePath);

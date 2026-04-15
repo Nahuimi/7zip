@@ -168,12 +168,16 @@ HRESULT WINAPI Z7PasswordPlugin_StorePassword(
 }
 
 extern "C"
-HRESULT WINAPI Z7PasswordPlugin_QueryOnlineByMd5(
+HRESULT WINAPI Z7PasswordPlugin_QueryExtensionByMd5(
     LPCSTR md5,
+    LPCWSTR archiveFileName,
+    UInt64 archiveSizeBytes,
     BSTR *password,
     BSTR *errorMessage)
 {
   UNUSED_VAR(md5)
+  UNUSED_VAR(archiveFileName)
+  UNUSED_VAR(archiveSizeBytes)
   SetEmpty(password);
   SetEmpty(errorMessage);
   return E_NOTIMPL;
