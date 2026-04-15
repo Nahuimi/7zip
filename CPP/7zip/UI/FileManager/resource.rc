@@ -303,6 +303,7 @@ BEGIN
   IDS_PASSWORD_BOOK_EXPORTED         "Exported entries: {0}"
   IDS_PASSWORD_BOOK_QUERY_RESULT     "Password: {0}"
   IDS_PASSWORD_BOOK_QUERY_NOT_FOUND  "No password was found in the password book."
+  IDS_PASSWORD_BOOK_QUERY_MENU       "Query Password"
 
 END
 

@@ -13,7 +13,7 @@ using namespace NWindows;
 bool CQueryPasswordDialog::OnInit()
 {
 #ifdef Z7_LANG
-  LangSetWindowText(*this, IDM_QUERY_PASSWORD);
+  LangSetWindowText(*this, IDS_PASSWORD_BOOK_QUERY_MENU);
   SetItemText(IDT_QUERY_PASSWORD_VALUE, LangString(IDG_PASSWORD) + L":");
   SetItemText(IDB_QUERY_PASSWORD_COPY, LangString(IDS_BUTTON_COPY));
 #endif
