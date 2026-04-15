@@ -20,6 +20,7 @@
 #include "MyLoadMenu.h"
 #include "PasswordBook.h"
 #include "PropertyName.h"
+#include "QueryPasswordDialog.h"
 
 #include "PropertyNameRes.h"
 #include "resource.h"
@@ -914,10 +915,9 @@ void CPanel::QueryPassword()
     return;
   }
 
-  ::MessageBoxW(*this,
-      MyFormatNew(IDS_PASSWORD_BOOK_QUERY_RESULT, password),
-      L"7-Zip",
-      MB_OK | MB_ICONINFORMATION);
+  CQueryPasswordDialog dialog;
+  dialog.Password = password;
+  dialog.Create(*this);
 }
 
 bool CPanel::CheckBeforeUpdate(UINT resourceID)

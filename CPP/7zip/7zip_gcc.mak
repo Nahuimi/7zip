@@ -1106,6 +1106,8 @@ $O/PanelSplitFile.o: ../../UI/FileManager/PanelSplitFile.cpp
 	$(CXX) $(CXXFLAGS) $<
 $O/PasswordDialog.o: ../../UI/FileManager/PasswordDialog.cpp
 	$(CXX) $(CXXFLAGS) $<
+$O/QueryPasswordDialog.o: ../../UI/FileManager/QueryPasswordDialog.cpp
+	$(CXX) $(CXXFLAGS) $<
 $O/ProgramLocation.o: ../../UI/FileManager/ProgramLocation.cpp
 	$(CXX) $(CXXFLAGS) $<
 $O/ProgressDialog.o: ../../UI/FileManager/ProgressDialog.cpp

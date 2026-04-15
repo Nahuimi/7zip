@@ -70,6 +70,7 @@ FM_OBJS = \
   $O\PasswordDialog.obj \
   $O\PasswordBookPage.obj \
   $O\ProgressDialog2.obj \
+  $O\QueryPasswordDialog.obj \
   $O\SettingsPage.obj \
   $O\SplitDialog.obj \
   $O\SystemPage.obj \
