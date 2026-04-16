@@ -31,7 +31,35 @@ This fork adds an intelligent extract mode for Windows builds.
   - Adds `Smart Extract`
   - The entry is placed below `Extract files...`
 
-### Name Encoding Selector and Auto Detection in 7zFM
+### Password Book and Bundled Password Plugin
+
+This fork adds a Windows password-book workflow backed by a bundled plugin DLL.
+
+- Runtime files:
+  - `7zPasswordPlugins.dll`
+  - `7zPasswordBook.db`
+- Current public behavior:
+  - Stores passwords by archive MD5 in a local SQLite database
+  - Lets 7zFM manage the password book from the `Password Book` options page
+  - Supports CSV import/export for password-book entries through `7zPasswordBook.csv`
+  - Preloads saved passwords for extraction and saves confirmed passwords back to the local password book
+  - Adds `Query Password` to the 7zFM context menu
+- Notes:
+  - The current public build implements local password-book lookup and storage
+  - The plugin extension lookup export is reserved, and the public plugin currently returns `E_NOTIMPL`
+
+### Separate Archive for Each File/Folder
+
+This fork adds a GUI compression option that creates one archive per selected input item.
+
+- Compress dialog:
+  - Adds `Separate archive for each file/folder`
+- Behavior:
+  - When multiple files or folders are selected, the GUI creates one archive per selected item
+  - Reuses the chosen archive format and compression settings for each generated archive
+  - Resolves output name collisions by appending suffixes such as `_2`, `_3`, and so on
+
+### Name Encoding Selector and Auto Detection in 7zFM and CLI
 
 This fork also ports the 7zFM name-encoding selector from [Autori/7zip-codepage](https://github.com/Autori/7zip-codepage).
 
@@ -44,6 +72,10 @@ This fork also ports the 7zFM name-encoding selector from [Autori/7zip-codepage]
   - Uses the integrated `compact_enc_det` library to detect archive entry name encodings automatically
   - Applies to formats that route through the name code-page detection path, including ZIP and TAR
   - Falls back to internal heuristics when the detector cannot produce a usable result
+- Command line:
+  - Supports `-mcp=auto` for automatic archive entry name encoding detection on formats that support the `cp` property
+  - The `cp` property also accepts `UTF-8`, `WIN`, `DOS`, and numeric code page ids
+  - Example: `7z x archive.zip -mcp=auto`
 - Runtime behavior:
   - Stores the selected code page or the `auto` mode in the `Z7_FORCE_CODEC` environment variable
   - Applies the selected code page when opening archives in 7zFM
@@ -66,5 +98,21 @@ Windows CI is defined in [`.github/workflows/build-windows.yml`](.github/workflo
 - Toolchain: Visual Studio 2022 + `nmake`
 - Targets: `x64`, `x86`
 - Artifacts:
-  - `7zip-windows-replacement`: a replacement package that keeps the layout of the current Windows distribution, suitable for directly swapping built binaries into an existing 7-Zip installation or package structure; it also includes a `Licenses/` directory with the 7-Zip license, the bundled `compact_enc_det` Apache-2.0 license text, and third-party notices
+  - `7zip-windows-replacement-x64`: a replacement package that keeps the layout of the current Windows distribution, suitable for directly swapping built binaries into an existing `x64` 7-Zip installation or package structure; it also includes a `Licenses/` directory with the 7-Zip license, the bundled `compact_enc_det` Apache-2.0 license text, and third-party notices
+  - `7zip-windows-replacement-x86`: a zip archive with the corresponding `x86` replacement package
   - `7zip-windows-all-products`: a zip archive that collects all produced `.exe`, `.dll`, `.sfx`, language files, and the same `Licenses/` documentation in one place for inspection, download, or redistribution
+
+Windows installer release packaging is defined in [`.github/workflows/release-windows-installer.yml`](.github/workflows/release-windows-installer.yml).
+
+- Trigger: manual `workflow_dispatch`
+- Input: `version_tag`, which must start with `v<major>.<minor>`, for example `v26.00` or `v26.00-0.0.1`
+- Behavior:
+  - Builds `x64` and `x86` Windows binaries
+  - Downloads the matching upstream 7-Zip installer skeleton based on the leading `v<major>.<minor>` portion of the tag
+  - Replaces the packaged binaries, language files from `Lang/`, and selected distribution documents from `DOC/`
+  - Creates or updates a GitHub Release and uploads the generated installer executables
+- Installer payload notes:
+  - Includes `Uninstall.exe`
+  - Includes `7zPasswordPlugins.dll`, and the bundled uninstaller removes it during uninstall
+  - Does not install `Install.exe`
+  - Does not install `7zS.sfx`
