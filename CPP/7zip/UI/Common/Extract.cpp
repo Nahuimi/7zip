@@ -453,9 +453,15 @@ HRESULT Extract(
     */
 
     RINOK(extractCallback->BeforeOpen(arcPath, options.TestMode))
-    CArchiveLink arcLink;
 
-    CObjectVector<COpenType> types2 = types;
+    bool retryCurrentArchive;
+    do
+    {
+      retryCurrentArchive = false;
+      ecs->InitBeforeNewArchive();
+      CArchiveLink arcLink;
+
+      CObjectVector<COpenType> types2 = types;
     /*
     #ifndef Z7_SFX
     if (types.IsEmpty())
@@ -484,32 +490,38 @@ HRESULT Extract(
     #endif
     */
 
-    COpenOptions op;
-    #ifndef Z7_SFX
-    op.props = &options.Properties;
-    #endif
-    op.codecs = codecs;
-    op.types = &types2;
-    op.excludedFormats = &excludedFormats;
-    op.stdInMode = options.StdInMode;
-    op.stream = NULL;
-    op.filePath = arcPath;
+      COpenOptions op;
+      #ifndef Z7_SFX
+      op.props = &options.Properties;
+      #endif
+      op.codecs = codecs;
+      op.types = &types2;
+      op.excludedFormats = &excludedFormats;
+      op.stdInMode = options.StdInMode;
+      op.stream = NULL;
+      op.filePath = arcPath;
 
-    HRESULT result = arcLink.Open_Strict(op, openCallback);
+      HRESULT result = arcLink.Open_Strict(op, openCallback);
 
-    if (result == E_ABORT)
-      return result;
+      if (result == E_ABORT)
+        return result;
 
-    // arcLink.Set_ErrorsText();
-    RINOK(extractCallback->OpenResult(codecs, arcLink, arcPath, result))
+      // arcLink.Set_ErrorsText();
+      RINOK(extractCallback->OpenResult(codecs, arcLink, arcPath, result))
 
-    if (result != S_OK)
-    {
-      thereAreNotOpenArcs = true;
-      if (!options.StdInMode)
-        totalPackProcessed += fi.Size;
-      continue;
-    }
+      if (extractCallback->NeedPasswordRetry())
+      {
+        retryCurrentArchive = true;
+        continue;
+      }
+
+      if (result != S_OK)
+      {
+        thereAreNotOpenArcs = true;
+        if (!options.StdInMode)
+          totalPackProcessed += fi.Size;
+        break;
+      }
 
    #if defined(_WIN32) && !defined(UNDER_CE) && !defined(Z7_SFX)
     if (options.ZoneMode != NExtract::NZoneIdMode::kNone
@@ -520,39 +532,39 @@ HRESULT Extract(
    #endif
     
 
-    if (arcLink.Arcs.Size() != 0)
-    {
-      if (arcLink.GetArc()->IsHashHandler(op))
+      if (arcLink.Arcs.Size() != 0)
       {
-        if (!options.TestMode)
+        if (arcLink.GetArc()->IsHashHandler(op))
         {
-          /* real Extracting to files is possible.
-             But user can think that hash archive contains real files.
-             So we block extracting here. */
-          // v23.00 : we don't break process.
-          RINOK(extractCallback->OpenResult(codecs, arcLink, arcPath, E_NOTIMPL))
-          thereAreNotOpenArcs = true;
-          if (!options.StdInMode)
-            totalPackProcessed += fi.Size;
-          continue;
-          // return E_NOTIMPL; // before v23
-        }
-        FString dirPrefix = us2fs(options.HashDir);
-        if (dirPrefix.IsEmpty())
-        {
-          if (!NFile::NDir::GetOnlyDirPrefix(us2fs(arcPath), dirPrefix))
+          if (!options.TestMode)
           {
-            // return GetLastError_noZero_HRESULT();
+            /* real Extracting to files is possible.
+               But user can think that hash archive contains real files.
+               So we block extracting here. */
+            // v23.00 : we don't break process.
+            RINOK(extractCallback->OpenResult(codecs, arcLink, arcPath, E_NOTIMPL))
+            thereAreNotOpenArcs = true;
+            if (!options.StdInMode)
+              totalPackProcessed += fi.Size;
+            break;
+            // return E_NOTIMPL; // before v23
           }
+          FString dirPrefix = us2fs(options.HashDir);
+          if (dirPrefix.IsEmpty())
+          {
+            if (!NFile::NDir::GetOnlyDirPrefix(us2fs(arcPath), dirPrefix))
+            {
+              // return GetLastError_noZero_HRESULT();
+            }
+          }
+          if (!dirPrefix.IsEmpty())
+            NName::NormalizeDirPathPrefix(dirPrefix);
+          ecs->DirPathPrefix_for_HashFiles = dirPrefix;
         }
-        if (!dirPrefix.IsEmpty())
-          NName::NormalizeDirPathPrefix(dirPrefix);
-        ecs->DirPathPrefix_for_HashFiles = dirPrefix;
       }
-    }
 
-    if (!options.StdInMode)
-    {
+      if (!options.StdInMode)
+      {
       // numVolumes += arcLink.VolumePaths.Size();
       // arcLink.VolumesSize;
 
@@ -598,24 +610,24 @@ HRESULT Extract(
     #endif
     */
 
-    CArc &arc = arcLink.Arcs.Back();
-    arc.MTime.Def = !options.StdInMode
+      CArc &arc = arcLink.Arcs.Back();
+      arc.MTime.Def = !options.StdInMode
         #ifdef _WIN32
-        && !fi.IsDevice
+          && !fi.IsDevice
         #endif
-        ;
-    if (arc.MTime.Def)
-      arc.MTime.Set_From_FiTime(fi.MTime);
+          ;
+      if (arc.MTime.Def)
+        arc.MTime.Set_From_FiTime(fi.MTime);
 
-    UInt64 packProcessed;
-    const bool calcCrc =
+      UInt64 packProcessed;
+      const bool calcCrc =
         #ifndef Z7_SFX
-          (hash != NULL);
+            (hash != NULL);
         #else
-          false;
+            false;
         #endif
 
-    RINOK(DecompressArchive(
+      RINOK(DecompressArchive(
         codecs,
         arcLink,
         fi.Size + arcLink.VolumesSize,
@@ -625,13 +637,21 @@ HRESULT Extract(
         extractCallback, faeCallback, ecs,
         errorMessage, packProcessed))
 
-    if (!options.StdInMode)
-      packProcessed = fi.Size + arcLink.VolumesSize;
-    totalPackProcessed += packProcessed;
-    ecs->LocalProgressSpec->InSize += packProcessed;
-    ecs->LocalProgressSpec->OutSize = ecs->UnpackSize;
-    if (!errorMessage.IsEmpty())
-      return E_FAIL;
+      if (extractCallback->NeedPasswordRetry())
+      {
+        retryCurrentArchive = true;
+        continue;
+      }
+
+      if (!options.StdInMode)
+        packProcessed = fi.Size + arcLink.VolumesSize;
+      totalPackProcessed += packProcessed;
+      ecs->LocalProgressSpec->InSize += packProcessed;
+      ecs->LocalProgressSpec->OutSize = ecs->UnpackSize;
+      if (!errorMessage.IsEmpty())
+        return E_FAIL;
+    }
+    while (retryCurrentArchive);
   }
 
   if (multi || thereAreNotOpenArcs)

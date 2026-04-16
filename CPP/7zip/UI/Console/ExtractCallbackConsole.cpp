@@ -647,6 +647,11 @@ HRESULT CExtractCallbackConsole::BeforeOpen(const wchar_t *name, bool testMode)
   return S_OK;
 }
 
+bool CExtractCallbackConsole::NeedPasswordRetry()
+{
+  return false;
+}
+
 HRESULT Print_OpenArchive_Props(CStdOutStream &so, const CCodecs *codecs, const CArchiveLink &arcLink);
 HRESULT Print_OpenArchive_Error(CStdOutStream &so, const CCodecs *codecs, const CArchiveLink &arcLink);
 

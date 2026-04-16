@@ -62,9 +62,22 @@ bool SaveCsv(const FString &path, const CDatabase &db, UString &errorMessage);
 
 class CState
 {
+  struct CAutoPasswordCandidate
+  {
+    UString Password;
+    bool FromLocal;
+    bool FromOnline;
+
+    CAutoPasswordCandidate():
+        FromLocal(false),
+        FromOnline(false)
+        {}
+  };
+
   bool _enabled;
   bool _md5Defined;
-  bool _autoPasswordWasUsed;
+  bool _autoCandidatesLoaded;
+  bool _currentPasswordIsAuto;
   bool _manualPasswordWasUsed;
   bool _savePending;
   bool _wrongPasswordDetected;
@@ -73,31 +86,40 @@ class CState
   UString _archiveFileName;
   UInt64 _archiveSizeBytes;
   bool _archiveSizeDefined;
+  unsigned _nextAutoPasswordIndex;
+  CObjectVector<CAutoPasswordCandidate> _autoCandidates;
+
+  void AddAutoCandidate(const UString &password, bool fromLocal, bool fromOnline);
+  void LoadAutoCandidates();
+  bool EnsureMd5();
 
 public:
   CState():
       _enabled(false),
       _md5Defined(false),
-      _autoPasswordWasUsed(false),
+      _autoCandidatesLoaded(false),
+      _currentPasswordIsAuto(false),
       _manualPasswordWasUsed(false),
       _savePending(false),
       _wrongPasswordDetected(false),
       _archiveSizeBytes(0),
-      _archiveSizeDefined(false)
+      _archiveSizeDefined(false),
+      _nextAutoPasswordIndex(0)
       {}
 
   void BeginArchive(const UString &archivePath);
   bool TryGetPassword(UString &password);
-  void NoteManualPassword()
+  void NoteManualPassword();
+  void NoteWrongPassword()
   {
-    _manualPasswordWasUsed = true;
-    _savePending = (_enabled && _md5Defined);
+    _wrongPasswordDetected = true;
+    _currentPasswordIsAuto = false;
+    _savePending = false;
   }
-  void NoteWrongPassword() { _wrongPasswordDetected = true; }
   void SaveIfNeeded(const UString &password);
-  bool WasAutoPasswordUsed() const { return _autoPasswordWasUsed; }
+  bool WasAutoPasswordUsed() const { return _currentPasswordIsAuto; }
   bool NeedRetry() const
-    { return (_wrongPasswordDetected && _autoPasswordWasUsed && !_manualPasswordWasUsed); }
+    { return (_wrongPasswordDetected && !_manualPasswordWasUsed && _nextAutoPasswordIndex < _autoCandidates.Size()); }
 };
 
 }

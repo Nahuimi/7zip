@@ -42,12 +42,24 @@ extern bool g_DisableUserQuestions;
 
 CExtractCallbackImp::~CExtractCallbackImp() {}
 
+bool CExtractCallbackImp::NeedPasswordRetry()
+{
+#if !defined(Z7_SFX) && !defined(Z7_NO_CRYPTO)
+  const bool needRetry = _needPasswordRetry;
+  _needPasswordRetry = false;
+  return needRetry;
+#else
+  return false;
+#endif
+}
+
 void CExtractCallbackImp::Init()
 {
 #if !defined(Z7_SFX) && !defined(Z7_NO_CRYPTO)
   _defaultPasswordInitialized = false;
   _defaultPasswordIsDefined = false;
   _defaultPassword.Empty();
+  _needPasswordRetry = false;
 #endif
   LangString(IDS_PROGRESS_EXTRACTING, _lang_Extracting);
   LangString(IDS_PROGRESS_TESTING, _lang_Testing);
@@ -387,6 +399,9 @@ Z7_COM7F_IMF(CExtractCallbackImp::SetOperationResult(Int32 opRes, Int32 encrypte
       _passwordBook.NoteWrongPassword();
     PasswordIsDefined = false;
     Password.Empty();
+    _needPasswordRetry = true;
+    _currentFilePath.Empty();
+    return S_OK;
   }
   #endif
 
@@ -442,6 +457,7 @@ HRESULT CExtractCallbackImp::BeforeOpen(const wchar_t *name, bool /* testMode */
   PasswordIsDefined = _defaultPasswordIsDefined;
   Password = _defaultPassword;
   PasswordWasAsked = false;
+  _needPasswordRetry = false;
   _passwordBook.BeginArchive(name);
 #endif
   #ifndef Z7_SFX
@@ -655,16 +671,27 @@ HRESULT CExtractCallbackImp::OpenResult(const CCodecs *codecs, const CArchiveLin
 
   if (result != S_OK && arcLink.PasswordWasAsked)
   {
+#if !defined(Z7_SFX) && !defined(Z7_NO_CRYPTO)
+    bool needRetry = false;
+
+    if (_passwordBook.WasAutoPasswordUsed())
+    {
+      _passwordBook.NoteWrongPassword();
+      needRetry = true;
+    }
+
     const UInt32 errorFlags = arcLink.NonOpen_ErrorInfo.GetErrorFlags();
     if ((errorFlags & kpv_ErrorFlags_EncryptedHeadersError) != 0)
+      needRetry = true;
+
+    if (needRetry)
     {
-#if !defined(Z7_SFX) && !defined(Z7_NO_CRYPTO)
-      if (_passwordBook.WasAutoPasswordUsed())
-        _passwordBook.NoteWrongPassword();
       PasswordIsDefined = false;
       Password.Empty();
-#endif
+      _needPasswordRetry = true;
+      return S_OK;
     }
+#endif
   }
 
   UString s;
@@ -732,9 +759,10 @@ HRESULT CExtractCallbackImp::SetPassword(const UString &password)
 Z7_COM7F_IMF(CExtractCallbackImp::CryptoGetTextPassword(BSTR *password))
 {
   PasswordWasAsked = true;
+  _needPasswordRetry = false;
 #if !defined(Z7_SFX) && !defined(Z7_NO_CRYPTO)
   UString passwordFromBook;
-  if (_passwordBook.TryGetPassword(passwordFromBook))
+  if (!PasswordIsDefined && _passwordBook.TryGetPassword(passwordFromBook))
   {
     Password = passwordFromBook;
     PasswordIsDefined = true;

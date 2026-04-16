@@ -152,9 +152,13 @@ C_OBJS = \
 
 !include "../../7zip.mak"
 
+!IF "$(SKIP_PLUGIN_BUILD)" == "1"
+all:
+!ELSE
 PLUGIN_DIRS = ..\PasswordPlugin\~
 
 all: $(PLUGIN_DIRS)
 
 $(PLUGIN_DIRS):
 !include "../../SubBuild.mak"
+!ENDIF

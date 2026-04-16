@@ -291,6 +291,7 @@ public:
 
 #ifndef Z7_NO_CRYPTO
   UString Password;
+  bool _needPasswordRetry;
 #endif
 #if !defined(Z7_SFX) && !defined(Z7_NO_CRYPTO)
   bool _defaultPasswordInitialized;
@@ -326,6 +327,9 @@ public:
     , OverwriteMode(NExtract::NOverwriteMode::kAsk)
 #ifndef Z7_SFX
     , _hashCalc(NULL)
+#endif
+#ifndef Z7_NO_CRYPTO
+    , _needPasswordRetry(false)
 #endif
 #if !defined(Z7_SFX) && !defined(Z7_NO_CRYPTO)
     , _defaultPasswordInitialized(false)

@@ -13,6 +13,7 @@
 #include "../FileManager/ExtractCallback.h"
 #include "../FileManager/FormatUtils.h"
 #include "../FileManager/LangUtils.h"
+#include "../FileManager/PasswordBook.h"
 #include "../FileManager/resourceGui.h"
 #include "../FileManager/OverwriteDialogRes.h"
 
@@ -35,6 +36,26 @@ using namespace NFile;
 using namespace NDir;
 
 static const wchar_t * const kIncorrectOutDir = L"Incorrect output directory path";
+
+#ifndef Z7_SFX
+static void TryLoadPasswordBookPassword(const UStringVector &archivePathsFull, UString &password)
+{
+  password.Empty();
+
+  if (archivePathsFull.Size() != 1)
+    return;
+  if (!NPasswordBook::ReadEnabled())
+    return;
+
+  AString md5;
+  if (!NPasswordBook::ComputeFileMd5(us2fs(archivePathsFull[0]), md5))
+    return;
+
+  UString passwordFromBook;
+  if (NPasswordBook::LookupPassword(md5, passwordFromBook))
+    password = passwordFromBook;
+}
+#endif
 
 #ifndef Z7_SFX
 
@@ -228,6 +249,8 @@ HRESULT ExtractGUI(
       dialog.NtSecurity = options.NtOptions.NtSecurity;
       if (extractCallback->PasswordIsDefined)
         dialog.Password = extractCallback->Password;
+      else
+        TryLoadPasswordBookPassword(archivePathsFull, dialog.Password);
       #endif
 
       if (dialog.Create(hwndParent) != IDOK)

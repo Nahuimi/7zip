@@ -704,11 +704,74 @@ bool ComputeFileMd5(const FString &path, AString &md5Hex)
   return true;
 }
 
+void CState::AddAutoCandidate(const UString &password, bool fromLocal, bool fromOnline)
+{
+  if (password.IsEmpty())
+    return;
+
+  FOR_VECTOR (i, _autoCandidates)
+  {
+    CAutoPasswordCandidate &candidate = _autoCandidates[i];
+    if (candidate.Password == password)
+    {
+      candidate.FromLocal = (candidate.FromLocal || fromLocal);
+      candidate.FromOnline = (candidate.FromOnline || fromOnline);
+      return;
+    }
+  }
+
+  CAutoPasswordCandidate &candidate = _autoCandidates.AddNew();
+  candidate.Password = password;
+  candidate.FromLocal = fromLocal;
+  candidate.FromOnline = fromOnline;
+}
+
+void CState::LoadAutoCandidates()
+{
+  if (_autoCandidatesLoaded)
+    return;
+
+  _autoCandidatesLoaded = true;
+
+  if (!EnsureMd5())
+    return;
+
+  UString password;
+  if (LookupPassword(_md5Hex, password))
+    AddAutoCandidate(password, true, false);
+
+  if (_autoCandidates.IsEmpty())
+  {
+    unsigned remoteAttemptCount = 0;
+    while (remoteAttemptCount < 8)
+    {
+      UString remotePassword;
+      UString errorMessage;
+      if (!QueryExtensionPassword_Direct(_archivePath, _md5Hex, remotePassword, errorMessage))
+        break;
+
+      AddAutoCandidate(remotePassword, false, true);
+      remoteAttemptCount++;
+    }
+  }
+}
+
+bool CState::EnsureMd5()
+{
+  if (_md5Defined)
+    return true;
+  if (_archivePath.IsEmpty())
+    return false;
+  _md5Defined = ComputeFileMd5(_archivePath, _md5Hex);
+  return _md5Defined;
+}
+
 void CState::BeginArchive(const UString &archivePath)
 {
   _enabled = ReadEnabled();
   _md5Defined = false;
-  _autoPasswordWasUsed = false;
+  _autoCandidatesLoaded = false;
+  _currentPasswordIsAuto = false;
   _manualPasswordWasUsed = false;
   _savePending = false;
   _wrongPasswordDetected = false;
@@ -717,6 +780,8 @@ void CState::BeginArchive(const UString &archivePath)
   _archiveFileName.Empty();
   _archiveSizeBytes = 0;
   _archiveSizeDefined = false;
+  _nextAutoPasswordIndex = 0;
+  _autoCandidates.Clear();
 
   if (!_enabled || archivePath.IsEmpty())
     return;
@@ -730,37 +795,39 @@ void CState::BeginArchive(const UString &archivePath)
     _archiveSizeBytes = fi.Size;
     _archiveSizeDefined = true;
   }
-
-  _md5Defined = ComputeFileMd5(_archivePath, _md5Hex);
 }
 
 bool CState::TryGetPassword(UString &password)
 {
   password.Empty();
-  if (!_enabled || !_md5Defined || _autoPasswordWasUsed || _manualPasswordWasUsed)
+  if (!_enabled || _manualPasswordWasUsed)
     return false;
-  if (LookupPassword(_md5Hex, password))
-  {
-    _autoPasswordWasUsed = true;
-    return true;
-  }
 
-  UString errorMessage;
-  if (QueryExtensionPassword_Direct(_archivePath, _md5Hex, password, errorMessage))
-  {
-    _autoPasswordWasUsed = true;
-    _savePending = (_enabled && _md5Defined);
-    return true;
-  }
+  LoadAutoCandidates();
+  if (_nextAutoPasswordIndex >= _autoCandidates.Size())
+    return false;
 
-  return false;
+  const CAutoPasswordCandidate &candidate = _autoCandidates[_nextAutoPasswordIndex++];
+  password = candidate.Password;
+  _currentPasswordIsAuto = true;
+  _wrongPasswordDetected = false;
+  _savePending = (_enabled && _md5Defined);
+  return true;
+}
+
+void CState::NoteManualPassword()
+{
+  _manualPasswordWasUsed = true;
+  _currentPasswordIsAuto = false;
+  _savePending = (_enabled && EnsureMd5());
 }
 
 void CState::SaveIfNeeded(const UString &password)
 {
-  if (_savePending && _md5Defined)
+  if (_savePending && _md5Defined && !password.IsEmpty())
     StorePassword(_md5Hex, password);
   _savePending = false;
+  _currentPasswordIsAuto = false;
 }
 
 bool LookupPassword_Direct(const FString &path, const AString &md5, UString &password, UString &errorMessage)
