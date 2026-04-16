@@ -57,13 +57,6 @@ jobs:
           cd /d CPP\7zip
           nmake PLATFORM=x64
 
-      - name: Build x64 setup sfx
-        shell: cmd
-        run: |
-          call "%VS_INSTALL%\VC\Auxiliary\Build\vcvars64.bat"
-          cd /d CPP\7zip\Bundles\SFXSetup
-          nmake PLATFORM=x64
-
       - name: Build x64 installer and uninstaller
         shell: cmd
         run: |
@@ -78,13 +71,6 @@ jobs:
         run: |
           call "%VS_INSTALL%\VC\Auxiliary\Build\vcvarsamd64_x86.bat"
           cd /d CPP\7zip
-          nmake PLATFORM=x86
-
-      - name: Build x86 setup sfx
-        shell: cmd
-        run: |
-          call "%VS_INSTALL%\VC\Auxiliary\Build\vcvarsamd64_x86.bat"
-          cd /d CPP\7zip\Bundles\SFXSetup
           nmake PLATFORM=x86
 
       - name: Build x86 installer and uninstaller

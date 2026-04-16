@@ -93,8 +93,6 @@ function Copy-ProductFiles {
     @{ Source = (Join-Path $RepoRoot "CPP\7zip\UI\Explorer\$Platform\7-zip.dll"); Destination = "7-zip.dll" },
     @{ Source = (Join-Path $RepoRoot "CPP\7zip\Bundles\SFXWin\$Platform\7z.sfx"); Destination = "7z.sfx" },
     @{ Source = (Join-Path $RepoRoot "CPP\7zip\Bundles\SFXCon\$Platform\7zCon.sfx"); Destination = "7zCon.sfx" },
-    @{ Source = (Join-Path $RepoRoot "CPP\7zip\Bundles\SFXSetup\$Platform\7zS.sfx"); Destination = "7zS.sfx" },
-    @{ Source = (Join-Path $RepoRoot "C\Util\7zipInstall\$Platform\7zipInstall.exe"); Destination = "Install.exe" },
     @{ Source = (Join-Path $RepoRoot "C\Util\7zipUninstall\$Platform\7zipUninstall.exe"); Destination = "Uninstall.exe" }
   )
 
@@ -113,6 +111,48 @@ function Copy-ProductFiles {
     }
 
     Copy-Item -LiteralPath $item.Source -Destination $destinationPath -Force
+  }
+}
+
+function Copy-DistributionResources {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$DestinationRoot
+  )
+
+  $langSourceRoot = Join-Path $RepoRoot "Lang"
+  if (Test-Path -LiteralPath $langSourceRoot -PathType Container) {
+    $langDestinationRoot = Join-Path $DestinationRoot "Lang"
+    New-Item -ItemType Directory -Path $langDestinationRoot -Force | Out-Null
+
+    Get-ChildItem -LiteralPath $langSourceRoot -File | ForEach-Object {
+      Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $langDestinationRoot $_.Name) -Force
+    }
+  }
+
+  $documentMap = @(
+    @{ Source = "DOC\License.txt"; Destination = "License.txt" },
+    @{ Source = "DOC\readme.txt"; Destination = "readme.txt" },
+    @{ Source = "DOC\7zC.txt"; Destination = "7zC.txt" },
+    @{ Source = "DOC\7zFormat.txt"; Destination = "7zFormat.txt" },
+    @{ Source = "DOC\Methods.txt"; Destination = "Methods.txt" },
+    @{ Source = "DOC\lzma.txt"; Destination = "lzma.txt" },
+    @{ Source = "DOC\unRarLicense.txt"; Destination = "unRarLicense.txt" }
+  )
+
+  foreach ($item in $documentMap) {
+    $sourcePath = Join-Path $RepoRoot $item.Source
+    if (-not (Test-Path -LiteralPath $sourcePath -PathType Leaf)) {
+      continue
+    }
+
+    $destinationPath = Join-Path $DestinationRoot $item.Destination
+    $destinationParent = Split-Path -Path $destinationPath -Parent
+    if ($destinationParent) {
+      New-Item -ItemType Directory -Path $destinationParent -Force | Out-Null
+    }
+
+    Copy-Item -LiteralPath $sourcePath -Destination $destinationPath -Force
   }
 }
 
@@ -153,6 +193,7 @@ function New-InstallerAsset {
     Remove-Item -Force
 
   Copy-ProductFiles -Platform $Platform -DestinationRoot $stageRoot
+  Copy-DistributionResources -DestinationRoot $stageRoot
 
   if (Test-Path -LiteralPath $archivePath) {
     Remove-Item -LiteralPath $archivePath -Force

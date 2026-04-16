@@ -681,7 +681,7 @@ static BOOL RemoveDir(void)
   #define NUM_EXTRA_FILES_64BIT 0
 #endif
 
-#define NUM_FILES (NUM_LANG_TXT_FILES + 1 + 13 + NUM_EXTRA_FILES_64BIT)
+#define NUM_FILES (NUM_LANG_TXT_FILES + 1 + 14 + NUM_EXTRA_FILES_64BIT)
 
 static const char * const k_Names =
   "af an ar ast az ba be bg bn br ca co cs cy da de el eo es et eu ext"
@@ -700,6 +700,7 @@ static const char * const k_Names =
   " 7zG.exe"
   " 7z.dll"
   " 7zFM.exe"
+  " 7zPasswordPlugins.dll"
   #ifdef USE_7ZIP_32_DLL
   " 7-zip32.dll"
   #endif
