@@ -132,12 +132,7 @@ function Copy-DistributionResources {
 
   $documentMap = @(
     @{ Source = "DOC\License.txt"; Destination = "License.txt" },
-    @{ Source = "DOC\readme.txt"; Destination = "readme.txt" },
-    @{ Source = "DOC\7zC.txt"; Destination = "7zC.txt" },
-    @{ Source = "DOC\7zFormat.txt"; Destination = "7zFormat.txt" },
-    @{ Source = "DOC\Methods.txt"; Destination = "Methods.txt" },
-    @{ Source = "DOC\lzma.txt"; Destination = "lzma.txt" },
-    @{ Source = "DOC\unRarLicense.txt"; Destination = "unRarLicense.txt" }
+    @{ Source = "DOC\readme.txt"; Destination = "readme.txt" }
   )
 
   foreach ($item in $documentMap) {
