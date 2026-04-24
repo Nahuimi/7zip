@@ -1,0 +1,132 @@
+name: release-windows-nsis
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: Release tag to create, for example v26.00-0.0.3
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate release metadata
+        shell: powershell
+        run: |
+          $tag = '${{ github.event.inputs.version_tag }}'.Trim()
+          if ([string]::IsNullOrWhiteSpace($tag)) {
+            throw "version_tag is required."
+          }
+          if ($tag -notmatch '^v(?<major>\d+)\.(?<minor>\d+)') {
+            throw "version_tag must start with v<major>.<minor>, for example v26.00-0.0.3"
+          }
+
+          $compact = "{0}{1:00}" -f [int]$Matches.major, [int]$Matches.minor
+
+          "RELEASE_TAG=$tag" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "UPSTREAM_VERSION_COMPACT=$compact" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Locate Visual Studio
+        shell: powershell
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+          if (-not (Test-Path $vswhere)) {
+            throw "vswhere.exe was not found."
+          }
+          $installPath = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (-not $installPath) {
+            throw "Visual Studio with C++ build tools was not found."
+          }
+          "VS_INSTALL=$installPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Enable NSIS decompile build patches
+        shell: powershell
+        run: |
+          .\.github\scripts\enable-nsis-decompile-build.ps1 -RepoRoot $PWD
+
+      - name: Build x64 binaries
+        shell: cmd
+        run: |
+          call "%VS_INSTALL%\VC\Auxiliary\Build\vcvars64.bat"
+          cd /d CPP\7zip
+          nmake PLATFORM=x64
+
+      - name: Build x64 installer and uninstaller
+        shell: cmd
+        run: |
+          call "%VS_INSTALL%\VC\Auxiliary\Build\vcvars64.bat"
+          cd /d C\Util\7zipInstall
+          nmake PLATFORM=x64
+          cd /d ..\7zipUninstall
+          nmake PLATFORM=x64
+
+      - name: Build x86 binaries
+        shell: cmd
+        run: |
+          call "%VS_INSTALL%\VC\Auxiliary\Build\vcvarsamd64_x86.bat"
+          cd /d CPP\7zip
+          nmake PLATFORM=x86
+
+      - name: Build x86 installer and uninstaller
+        shell: cmd
+        run: |
+          call "%VS_INSTALL%\VC\Auxiliary\Build\vcvarsamd64_x86.bat"
+          cd /d C\Util\7zipInstall
+          nmake PLATFORM=x86
+          cd /d ..\7zipUninstall
+          nmake PLATFORM=x86
+
+      - name: Package NSIS-enabled release assets
+        shell: powershell
+        run: |
+          .\.github\scripts\package-windows-installer.ps1 `
+            -VersionTag $env:RELEASE_TAG `
+            -UpstreamVersionCompact $env:UPSTREAM_VERSION_COMPACT `
+            -AssetFlavor "nsis" `
+            -RepoRoot $PWD `
+            -OutputDir (Join-Path $PWD "release-assets")
+
+      - name: Upload packaged assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-nsis-installer-assets
+          path: release-assets\*.exe
+
+      - name: Publish GitHub release
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = $env:RELEASE_TAG
+          $assets = Get-ChildItem -LiteralPath (Join-Path $PWD "release-assets") -Filter *.exe -File | Sort-Object Name | ForEach-Object { $_.FullName }
+
+          if (-not $assets) {
+            throw "No release assets were generated."
+          }
+
+          cmd /d /c "gh release view ""$tag"" 1>nul 2>nul"
+          $releaseExists = ($LASTEXITCODE -eq 0)
+
+          if ($releaseExists) {
+            & gh release upload $tag @assets --clobber
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to upload assets to existing release $tag."
+            }
+          }
+          else {
+            & gh release create $tag @assets --title $tag --target $env:GITHUB_SHA --generate-notes
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to create release $tag."
+            }
+          }

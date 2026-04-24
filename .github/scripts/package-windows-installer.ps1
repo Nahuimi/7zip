@@ -5,6 +5,8 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$UpstreamVersionCompact,
 
+  [string]$AssetFlavor = "",
+
   [string]$RepoRoot = (Get-Location).Path,
 
   [string]$OutputDir = (Join-Path (Get-Location).Path "release-assets")
@@ -172,7 +174,12 @@ function New-InstallerAsset {
   $stageRoot = Join-Path $WorkingRoot "stage-$Platform"
   $archivePath = Join-Path $WorkingRoot "$Platform.7z"
   $installerStub = Join-Path $RepoRoot "C\Util\7zipInstall\$Platform\7zipInstall.exe"
-  $installerAssetPath = Join-Path $OutputDir "7zip-$AssetTag-windows-$Platform-installer.exe"
+  $assetNameParts = @("7zip", $AssetTag)
+  if (-not [string]::IsNullOrWhiteSpace($AssetFlavor)) {
+    $assetNameParts += $AssetFlavor.Trim()
+  }
+  $assetNameParts += @("windows", $Platform, "installer.exe")
+  $installerAssetPath = Join-Path $OutputDir ($assetNameParts -join "-")
 
   Assert-FileExists -Path $installerStub
 
