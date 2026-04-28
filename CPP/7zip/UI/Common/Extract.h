@@ -14,6 +14,15 @@
 
 #include "../Common/LoadCodecs.h"
 
+namespace NExtractOutDirMode {
+enum EEnum
+{
+  k_Direct = 0,
+  k_AddArcName,
+  k_ReplaceAsterisk
+};
+}
+
 struct CExtractOptionsBase
 {
   CBoolPair ElimDup;
@@ -27,10 +36,11 @@ struct CExtractOptionsBase
   NExtract::NPathMode::EEnum PathMode;
   NExtract::NOverwriteMode::EEnum OverwriteMode;
   NExtract::NZoneIdMode::EEnum ZoneMode;
+  NExtractOutDirMode::EEnum OutDirMode;
 
   CExtractNtOptions NtOptions;
   
-  FString OutputDir;
+  FString OutputDir; // normalized : with path separator at the end
   UString HashDir;
 
   CExtractOptionsBase():
@@ -41,7 +51,8 @@ struct CExtractOptionsBase
       OverwriteMode_Force(false),
       PathMode(NExtract::NPathMode::kFullPaths),
       OverwriteMode(NExtract::NOverwriteMode::kAsk),
-      ZoneMode(NExtract::NZoneIdMode::kNone)
+      ZoneMode(NExtract::NZoneIdMode::kNone),
+      OutDirMode(NExtractOutDirMode::k_ReplaceAsterisk)
       {}
 };
 
