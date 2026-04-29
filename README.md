@@ -90,6 +90,16 @@ This repository vendors Google's `compact_enc_det` library for archive entry nam
 - Third-party notice summary: [`THIRD_PARTY_NOTICES.txt`](THIRD_PARTY_NOTICES.txt)
 - The imported `compact_enc_det` source tree contains local modifications for integration and compiler compatibility
 
+The NSIS script decompile build and release automation also references the approach used by [myfreeer/7z-build-nsis](https://github.com/myfreeer/7z-build-nsis).
+
+- Referenced files in this repository:
+  - [`.github/workflows/release-windows-nsis.yml`](.github/workflows/release-windows-nsis.yml)
+  - [`.github/scripts/enable-nsis-decompile-build.ps1`](.github/scripts/enable-nsis-decompile-build.ps1)
+  - [`.github/scripts/package-windows-installer.ps1`](.github/scripts/package-windows-installer.ps1)
+- Upstream project license: LGPL-2.1
+- Upstream repository: <https://github.com/myfreeer/7z-build-nsis>
+- This repository reimplements the CI flow in PowerShell and GitHub Actions around the same NSIS script decompile enablement idea
+
 ## GitHub Actions
 
 Windows CI is defined in [`.github/workflows/build-windows.yml`](.github/workflows/build-windows.yml).
@@ -116,3 +126,16 @@ Windows installer release packaging is defined in [`.github/workflows/release-wi
   - Includes `7zPasswordPlugins.dll`, and the bundled uninstaller removes it during uninstall
   - Does not install `Install.exe`
   - Does not install `7zS.sfx`
+
+NSIS-enabled Windows installer release packaging is defined in [`.github/workflows/release-windows-nsis.yml`](.github/workflows/release-windows-nsis.yml).
+
+- Trigger: manual `workflow_dispatch`
+- Input: `version_tag`, which must start with `v<major>.<minor>`, for example `v26.00` or `v26.00-0.0.3`
+- Behavior:
+  - Applies a temporary build patch that enables `NSIS_SCRIPT` in `CPP/7zip/Archive/Nsis/NsisIn.h`
+  - Removes `-WX` from `CPP/Build.mak` during CI so NSIS script decompile warnings do not fail the build
+  - Builds `x64` and `x86` Windows binaries
+  - Packages NSIS-enabled installer assets with the `-nsis-` infix in the asset name
+  - Creates or updates a GitHub Release and uploads the generated installer executables
+- Validation note:
+  - To verify the feature, test the built `7z.exe` or `7zFM.exe` against a real NSIS installer and confirm that `[NSIS].nsi` is listed or extracted

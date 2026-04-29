@@ -90,6 +90,16 @@
 - 第三方说明文件：[`THIRD_PARTY_NOTICES.txt`](THIRD_PARTY_NOTICES.txt)
 - 引入的 `compact_enc_det` 源码树包含本仓库为集成和编译兼容性所做的本地修改
 
+本仓库的 NSIS 脚本反编译构建与发布流程，也参考了 [myfreeer/7z-build-nsis](https://github.com/myfreeer/7z-build-nsis) 的实现思路。
+
+- 本仓库中的相关文件：
+  - [`.github/workflows/release-windows-nsis.yml`](.github/workflows/release-windows-nsis.yml)
+  - [`.github/scripts/enable-nsis-decompile-build.ps1`](.github/scripts/enable-nsis-decompile-build.ps1)
+  - [`.github/scripts/package-windows-installer.ps1`](.github/scripts/package-windows-installer.ps1)
+- 上游项目许可证：LGPL-2.1
+- 上游仓库：<https://github.com/myfreeer/7z-build-nsis>
+- 本仓库是在相同的“启用 NSIS 脚本反编译能力”思路上，使用 PowerShell 和 GitHub Actions 重新实现了 CI 流程
+
 ## GitHub Actions
 
 Windows CI 定义位于 [`.github/workflows/build-windows.yml`](.github/workflows/build-windows.yml)。
@@ -117,3 +127,17 @@ Windows 安装包发布流程定义位于 [`.github/workflows/release-windows-in
   - 包含 `7zPasswordPlugins.dll`，卸载时也会删除它
   - 不安装 `Install.exe`
   - 不安装 `7zS.sfx`
+
+启用 NSIS 脚本反编译的 Windows 安装包发布流程定义位于 [`.github/workflows/release-windows-nsis.yml`](.github/workflows/release-windows-nsis.yml)。
+
+- 触发方式：手动 `workflow_dispatch`
+- 输入参数：`version_tag`
+  - 必须以 `v<主版本>.<次版本>` 开头，例如 `v26.00` 或 `v26.00-0.0.3`
+- 行为：
+  - 在 CI 中临时打补丁，启用 `CPP/7zip/Archive/Nsis/NsisIn.h` 里的 `NSIS_SCRIPT`
+  - 在 CI 中临时移除 `CPP/Build.mak` 的 `-WX`，避免 NSIS 脚本反编译相关警告导致构建失败
+  - 构建 `x64` 和 `x86` Windows 二进制
+  - 生成带 `-nsis-` 后缀的安装器发布产物，避免与普通发布流程产物重名
+  - 创建或更新 GitHub Release，并上传生成好的安装器 `.exe`
+- 验证说明：
+  - 可使用真实的 NSIS 安装器样本测试构建出的 `7z.exe` 或 `7zFM.exe`，确认是否能列出或解压出 `[NSIS].nsi`
