@@ -96,21 +96,24 @@
   - [`.github/workflows/release-windows-nsis.yml`](.github/workflows/release-windows-nsis.yml)
   - [`.github/scripts/enable-nsis-decompile-build.ps1`](.github/scripts/enable-nsis-decompile-build.ps1)
   - [`.github/scripts/package-windows-installer.ps1`](.github/scripts/package-windows-installer.ps1)
+  - [`.github/scripts/package-windows-products.ps1`](.github/scripts/package-windows-products.ps1)
 - 上游项目许可证：LGPL-2.1
 - 上游仓库：<https://github.com/myfreeer/7z-build-nsis>
 - 本仓库是在相同的“启用 NSIS 脚本反编译能力”思路上，使用 PowerShell 和 GitHub Actions 重新实现了 CI 流程
 
 ## GitHub Actions
 
-Windows CI 定义位于 [`.github/workflows/build-windows.yml`](.github/workflows/build-windows.yml)。
+Windows 构建现在通过手动触发的 GitHub Release 工作流发布。
 
 - Runner：`windows-2022`
 - 工具链：Visual Studio 2022 + `nmake`
 - 目标：`x64`、`x86`
-- 产物：
-  - `7zip-windows-replacement-x64`：保持当前 Windows 发行目录结构的 `x64` 替换包，适合直接替换现有 7-Zip 安装或现有打包结构中的构建产物；同时会包含 `Licenses/` 目录，内含 7-Zip 许可证、`compact_enc_det` 的 Apache-2.0 许可证文本以及第三方说明文件
-  - `7zip-windows-replacement-x86`：对应的 `x86` 替换包 zip
-  - `7zip-windows-all-products`：把所有生成的 `.exe`、`.dll`、`.sfx`、语言文件和同样的 `Licenses/` 文档一起打进一个 zip 包，便于检查、下载或二次分发
+- Release 产物类型：
+  - `x64` 和 `x86` Windows 安装器 `.exe`
+  - `all-products.zip`：把所有生成的 `.exe`、`.dll`、`.sfx`、语言文件和 `Licenses/` 文档一起打进一个 zip 包，便于检查、下载或二次分发
+- 产物命名：
+  - 普通发布产物类似 `7zip-v26.00-0.0.3-windows-all-products.zip`
+  - 启用 NSIS 脚本反编译的发布产物类似 `7zip-v26.00-0.0.3-nsis-windows-all-products.zip`
 
 Windows 安装包发布流程定义位于 [`.github/workflows/release-windows-installer.yml`](.github/workflows/release-windows-installer.yml)。
 
@@ -121,7 +124,7 @@ Windows 安装包发布流程定义位于 [`.github/workflows/release-windows-in
   - 构建 `x64` 和 `x86` Windows 二进制
   - 根据标签前缀里的 `v<主版本>.<次版本>` 下载对应上游 7-Zip 安装包骨架
   - 用仓库中的构建产物、`Lang/` 里的语言文件，以及 `DOC/` 中选定的发行文档替换安装包内容
-  - 创建或更新 GitHub Release，并上传生成好的安装器 `.exe`
+  - 创建或更新 GitHub Release，并上传所有生成好的安装器和 zip 产物
 - 安装包内容说明：
   - 包含 `Uninstall.exe`
   - 包含 `7zPasswordPlugins.dll`，卸载时也会删除它
@@ -137,7 +140,7 @@ Windows 安装包发布流程定义位于 [`.github/workflows/release-windows-in
   - 在 CI 中临时打补丁，启用 `CPP/7zip/Archive/Nsis/NsisIn.h` 里的 `NSIS_SCRIPT`
   - 在 CI 中临时移除 `CPP/Build.mak` 的 `-WX`，避免 NSIS 脚本反编译相关警告导致构建失败
   - 构建 `x64` 和 `x86` Windows 二进制
-  - 生成带 `-nsis-` 后缀的安装器发布产物，避免与普通发布流程产物重名
-  - 创建或更新 GitHub Release，并上传生成好的安装器 `.exe`
+  - 生成带 `-nsis-` 后缀的安装器和 zip 发布产物，避免与普通发布流程产物重名
+  - 创建或更新 GitHub Release，并上传所有生成好的安装器和 zip 产物
 - 验证说明：
   - 可使用真实的 NSIS 安装器样本测试构建出的 `7z.exe` 或 `7zFM.exe`，确认是否能列出或解压出 `[NSIS].nsi`

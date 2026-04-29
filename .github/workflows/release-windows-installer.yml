@@ -91,11 +91,19 @@ jobs:
             -RepoRoot $PWD `
             -OutputDir (Join-Path $PWD "release-assets")
 
+      - name: Package build product assets
+        shell: powershell
+        run: |
+          .\.github\scripts\package-windows-products.ps1 `
+            -VersionTag $env:RELEASE_TAG `
+            -RepoRoot $PWD `
+            -OutputDir (Join-Path $PWD "release-assets")
+
       - name: Upload packaged assets
         uses: actions/upload-artifact@v4
         with:
-          name: windows-installer-assets
-          path: release-assets\*.exe
+          name: windows-release-assets
+          path: release-assets\*
 
       - name: Publish GitHub release
         shell: powershell
@@ -103,7 +111,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = $env:RELEASE_TAG
-          $assets = Get-ChildItem -LiteralPath (Join-Path $PWD "release-assets") -Filter *.exe -File | Sort-Object Name | ForEach-Object { $_.FullName }
+          $assets = Get-ChildItem -LiteralPath (Join-Path $PWD "release-assets") -File | Sort-Object Name | ForEach-Object { $_.FullName }
 
           if (-not $assets) {
             throw "No release assets were generated."
